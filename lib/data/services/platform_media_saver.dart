@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:file_saver/file_saver.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -257,13 +257,16 @@ class PlatformMediaSaver implements MediaSaver {
   }
 
   static Future<bool> _exportWithSaveDialog(String path) async {
-    final saved = await FlutterFileDialog.saveFile(
-      params: SaveFileDialogParams(
-        sourceFilePath: path,
-        mimeTypesFilter: [
-          mediaMimeType(p.basename(path)) ?? 'application/octet-stream',
-        ],
-      ),
+    final name = p.basename(path);
+    final extension = p.extension(name);
+    final saved = await FileSaver.instance.saveAs(
+      name: extension.isEmpty
+          ? name
+          : name.substring(0, name.length - extension.length),
+      filePath: path,
+      fileExtension: extension,
+      mimeType: MimeType.custom,
+      customMimeType: mediaMimeType(name) ?? 'application/octet-stream',
     );
     return saved != null;
   }
