@@ -16,6 +16,7 @@ class MediaSlide extends StatelessWidget {
     required this.isActive,
     required this.videoController,
     required this.onToggleHeader,
+    required this.onZoomChanged,
   });
 
   final MediaItem item;
@@ -25,10 +26,19 @@ class MediaSlide extends StatelessWidget {
   /// Called when the media is tapped, e.g. to hide the slideshow header.
   final VoidCallback onToggleHeader;
 
+  /// Called when the image starts or stops being zoomed in.
+  final ValueChanged<bool> onZoomChanged;
+
   @override
   Widget build(BuildContext context) {
     if (!item.isVideo) {
-      return ImageSlide(url: item.url, name: item.name, onTap: onToggleHeader);
+      return ImageSlide(
+        url: item.url,
+        name: item.name,
+        isActive: isActive,
+        onTap: onToggleHeader,
+        onZoomChanged: isActive ? onZoomChanged : null,
+      );
     }
 
     if (!isActive) {

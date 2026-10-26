@@ -66,6 +66,7 @@ class _SlideshowPageState extends State<SlideshowPage> {
   bool _isSaving = false;
   bool _isChoosingSaveTarget = false;
   bool _headerVisible = true;
+  bool _imageZoomed = false;
   final ValueNotifier<MediaSaveProgress?> _saveProgress = ValueNotifier(null);
 
   @override
@@ -344,6 +345,18 @@ class _SlideshowPageState extends State<SlideshowPage> {
     setState(() => _headerVisible = !_headerVisible);
   }
 
+  /// Keeps the pages still while the current image is zoomed in, so that
+  /// dragging pans the image instead of changing pages.
+  void _onImageZoomChanged(bool zoomed) {
+    if (!mounted || _imageZoomed == zoomed) return;
+    setState(() => _imageZoomed = zoomed);
+  }
+
+  void _onPageChanged(int index) {
+    if (_imageZoomed) setState(() => _imageZoomed = false);
+    _viewModel.onPageChanged(index);
+  }
+
   // ---------------------------------------------------------------------------
   // Keyboard handling
   // ---------------------------------------------------------------------------
@@ -512,7 +525,10 @@ class _SlideshowPageState extends State<SlideshowPage> {
       ),
       child: PageView.builder(
         controller: _pageController,
-        onPageChanged: _viewModel.onPageChanged,
+        physics: _imageZoomed
+            ? const NeverScrollableScrollPhysics()
+            : const PageScrollPhysics(),
+        onPageChanged: _onPageChanged,
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
@@ -522,6 +538,7 @@ class _SlideshowPageState extends State<SlideshowPage> {
             isActive: index == _viewModel.currentIndex,
             videoController: _videoController,
             onToggleHeader: _toggleHeader,
+            onZoomChanged: _onImageZoomChanged,
           );
         },
       ),
