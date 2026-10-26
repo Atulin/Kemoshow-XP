@@ -1,0 +1,5070 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kemono API",
+    "version": "1.3.0"
+  },
+  "servers": [
+    {
+      "url": "https://kemono.cr/api"
+    },
+    {
+      "url": "https://coomer.su/api"
+    },
+    {
+      "url": "https://pawchive.pw/api"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Posts",
+      "description": "Version one"
+    },
+    {
+      "name": "Creators"
+    },
+    {
+      "name": "Comments"
+    },
+    {
+      "name": "Post Flagging",
+      "description": "Flag post for re-import"
+    },
+    {
+      "name": "Discord"
+    },
+    {
+      "name": "Favorites"
+    },
+    {
+      "name": "File Search"
+    },
+    {
+      "name": "Misc"
+    }
+  ],
+  "paths": {
+    "/v2/file/{file_hash}": {
+      "get": {
+        "description": "Overview of the file.",
+        "parameters": [
+          {
+            "name": "file_hash",
+            "in": "path",
+            "description": "Hash of the file.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/hash-sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved file details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/response-body-success"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/archive-info"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "There are errors in parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "description": "Add password to a file if needed",
+        "parameters": [
+          {
+            "name": "file_hash",
+            "in": "path",
+            "description": "Hash of the file.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/hash-sha256"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/request-body-with-data"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "object",
+                        "required": [
+                          "password"
+                        ],
+                        "properties": {
+                          "password": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully added a correct password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/response-body-success"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "description": "Hash of the file which got updated.",
+                          "$ref": "#/components/schemas/hash-sha256"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "There are errors in parameters or the body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/account/flags/post": {
+      "put": {
+        "description": "Flag the post for reimport.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/request-body-with-data"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "object",
+                        "required": [
+                          "service",
+                          "profile_id",
+                          "post_id"
+                        ],
+                        "properties": {
+                          "service": {
+                            "type": "string"
+                          },
+                          "profile_id": {
+                            "type": "string"
+                          },
+                          "post_id": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully flagged the post.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/response-body-success"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "description": "Data of flagged post.",
+                          "required": [
+                            "service",
+                            "profile_id",
+                            "post_id"
+                          ],
+                          "properties": {
+                            "service": {
+                              "type": "string"
+                            },
+                            "profile_id": {
+                              "type": "string"
+                            },
+                            "post_id": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request body has errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Post is already flagged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/account/administrator/accounts": {
+      "get": {
+        "description": "Get account count.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Filter by name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "Filter by role",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully counted accounts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/response-body-success"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User is not administrator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/account/administrator/accounts/{page}": {
+      "get": {
+        "description": "Get accounts at page.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-page"
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Filter by name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "description": "Filter by role",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully gotten accounts at page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/response-body-success"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/account"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "There are errors in parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User is not administrator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/account/administrator/account/{account_id}": {
+      "get": {
+        "description": "Overview of target account.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "ID of the account.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/positive-integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved target account details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/response-body-success"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/account"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "There are errors in parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "User not logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User is not administrator or account doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "description": "Change target account details.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "description": "ID of the account.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/positive-integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/request-body-with-data"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "object",
+                        "required": [
+                          "role"
+                        ],
+                        "properties": {
+                          "role": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully changed target account details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/response-body-success"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "description": "ID of account which got updated.",
+                          "$ref": "#/components/schemas/positive-integer"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "There are errors in parameters or in the body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Admin account is not logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Admin account is not administrator or target account doesn't exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Failed to update target account due to a conflict.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/response-body-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/creators.txt": {
+      "get": {
+        "tags": [
+          "Posts"
+        ],
+        "summary": "List All Creators",
+        "description": "List all creators with details. I blame DDG for .txt.",
+        "responses": {
+          "200": {
+            "description": "List of all creators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "favorited": {
+                        "type": "integer",
+                        "description": "The number of times this creator has been favorited"
+                      },
+                      "id": {
+                        "type": "string",
+                        "description": "The ID of the creator"
+                      },
+                      "indexed": {
+                        "type": "number",
+                        "description": "Timestamp when the creator was indexed, Unix time as integer"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "The name of the creator"
+                      },
+                      "service": {
+                        "type": "string",
+                        "description": "The service for the creator"
+                      },
+                      "updated": {
+                        "type": "number",
+                        "description": "Timestamp when the creator was last updated, Unix time as integer"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "favorited": 1,
+                    "id": "21101760",
+                    "indexed": 1672534800,
+                    "name": "RAIGYO",
+                    "service": "fanbox",
+                    "updated": 1672534800
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/posts": {
+      "get": {
+        "tags": [
+          "Posts"
+        ],
+        "summary": "List recent posts",
+        "description": "List of recently imported posts",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search query",
+            "schema": {
+              "type": "string",
+              "minLength": 3
+            }
+          },
+          {
+            "name": "o",
+            "in": "query",
+            "description": "Result offset, stepping of 50 is enforced",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "description": "A list of tags to filter by",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of recently added posts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "true_count": {
+                      "type": "integer"
+                    },
+                    "posts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "user": {
+                            "type": "string"
+                          },
+                          "service": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          },
+                          "embed": {
+                            "type": "object"
+                          },
+                          "shared_file": {
+                            "type": "boolean"
+                          },
+                          "added": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "published": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "edited": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "file": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "attachments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": "1836570",
+                    "user": "6570768",
+                    "service": "fanbox",
+                    "title": "ä»Šæ—¥ã¯FANBOXã‚’å§‹ã¾ã‚Šã¾ã—ãŸï¼",
+                    "content": "<p>ã¿ãªã•ã‚“ã“ã‚“ã«ã¡ã¯ã€å½±ãŠã˜ã§ã™ã€‚</p><p>å…ˆé€±ã®ã‚ˆã†ã«ã€FANBOXã‚’å§‹ã¾ã‚Šã«æ±ºå®šã—ã¾ã—ãŸï¼</p><p>ãã—ã¦FANBOXã®æ›´æ–°å†…å®¹ã«ã¤ã„ã¦ã€ã‚¢ãƒ³ã‚±ãƒ¼ãƒˆã®ã¿ãªã•ã‚“</p><p>ã‚ã‚ŠãŒã¨ã†ã”ã–ã„ã¾ã—ãŸï¼</p><p><br/></p><p>ã§ã¯æ›´æ–°å†…å®¹ã®è©³ã—ã„ã“ã¨ã¯ã“ã¡ã‚‰ã§ã™â†“</p><p>æ¯Žå›žã®çµµã€å…ƒã‚‚å·®åˆ†ãŒã‚ã‚Šã¾ã›ã‚“ã®å ´åˆã€ãƒœãƒŠã‚¹ã¨ã—ã¦å·®åˆ†ã‚¤ãƒ©ã‚¹ãƒˆã‚’æ”¯æ´è€…ã®çš†æ§˜ã«ãƒ—ãƒ¬ã‚¼ãƒ³ãƒˆã€‚</p><p>ã‚‚ã¨ã‚‚å·®åˆ†ãŒã‚ã‚Œã°ã€ãƒœãƒŠã‚¹ã¨ã—ã¦ãƒŒãƒ¼ãƒ‰å·®åˆ†ã‚¤ãƒ©ã‚¹ãƒˆã‚’æ”¯æ´è€…ã®çš†æ§˜ã«ãƒ—ãƒ¬ã‚¼ãƒ³ãƒˆã€‚</p><p><br/></p><p>ã“ã‚Œã‹ã‚‰ã€ä»•äº‹ä»¥å¤–ã®æ™‚é–“ã€ã§ãã‚‹é™ã‚Šå‹¤å‹‰ãªæ›´æ–°ã—ãŸã„ã¨æ€ã„ã¾ã™ï¼</p><p>ã©ã†ãžã‚ˆã‚ã—ããŠé¡˜ã„ã„ãŸã—ã¾ã™ï¼</p>",
+                    "embed": {},
+                    "shared_file": false,
+                    "added": "2021-03-30T18:00:05.973913",
+                    "published": "2021-01-24T17:54:38",
+                    "edited": "2021-01-24T18:46:15",
+                    "file": {
+                      "name": "a99d9674-5490-400e-acca-4bed99590699.jpg",
+                      "path": "/5c/98/5c984d1f62f0990a0891d8fa359aecdff6ac1e26ac165ba7bb7f31cc99e7a674.jpg"
+                    },
+                    "attachments": []
+                  },
+                  {
+                    "id": "1836649",
+                    "user": "6570768",
+                    "service": "fanbox",
+                    "title": "å¿ã¡ã‚ƒã‚“  è„‡ã‚³ã‚­å·®åˆ†",
+                    "content": "",
+                    "embed": {},
+                    "shared_file": false,
+                    "added": "2021-03-30T17:59:57.815397",
+                    "published": "2021-01-24T18:23:12",
+                    "edited": "2023-01-04T14:45:19",
+                    "file": {
+                      "name": "4c5615f9-be74-4fa7-b88d-168fd37a2824.jpg",
+                      "path": "/d0/3c/d03c893927521536646619f5fb33426aa4b82dc12869865d6d666932755d9acd.jpg"
+                    },
+                    "attachments": [
+                      {
+                        "name": "9cc982e4-1d94-4a1a-ac62-3dddd29f881c.png",
+                        "path": "/d7/4d/d74d1727f2c3fcf7a7cc2d244d677d93b4cc562a56904765e4e708523b34fb4c.png"
+                      },
+                      {
+                        "name": "ab0e17d7-52e5-42c2-925b-5cfdb451df0c.png",
+                        "path": "/1b/67/1b677a8c0525e386bf2b2f013e36e29e4033feb2308798e4e5e3780da6c0e815.png"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/posts/random": {
+      "get": {
+        "description": "Get a random post",
+        "responses": {
+          "200": {
+            "description": "A random post.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "artist_id": {
+                      "type": "string"
+                    },
+                    "post_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not random psot found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/posts/popular": {
+      "get": {
+        "description": "Get popular posts",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Base date of the list",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "description": "Period scale of the list",
+            "required": true,
+            "schema": {
+              "enum": [
+                "recent",
+                "day",
+                "week",
+                "month"
+              ]
+            }
+          },
+          {
+            "$ref": "#/components/parameters/query-o"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of popular posts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "info": {
+                      "type": "object",
+                      "properties": {
+                        "date": {
+                          "type": "string"
+                        },
+                        "min_date": {
+                          "type": "string"
+                        },
+                        "max_date": {
+                          "type": "string"
+                        },
+                        "navigation_dates": {
+                          "type": "object",
+                          "propertyNames": {
+                            "enum": [
+                              "recent",
+                              "day",
+                              "week",
+                              "month"
+                            ]
+                          },
+                          "additionalProperties": {
+                            "type": "array",
+                            "prefixItems": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "range_desc": {
+                          "type": "string"
+                        },
+                        "scale": {
+                          "enum": [
+                            "recent",
+                            "day",
+                            "week",
+                            "month"
+                          ]
+                        }
+                      }
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentPage": {
+                          "const": "popular_posts"
+                        },
+                        "today": {
+                          "type": "string"
+                        },
+                        "earliest_date_for_popular": {
+                          "type": "string"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "count": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/post-with-fav-count"
+                      }
+                    },
+                    "base": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "result_previews": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "const": "thumbnail"
+                              },
+                              "server": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "const": "embed"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "subject": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "result_attachments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "server": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "result_is_image": {
+                      "type": "array",
+                      "items": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/posts/tags": {
+      "get": {
+        "description": "Get tags",
+        "responses": {
+          "200": {
+            "description": "A list of post tags.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentpage": {
+                          "const": "tags"
+                        }
+                      }
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/tag"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/post/{post_id}": {
+      "get": {
+        "description": "Get a post by ID",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-service"
+          },
+          {
+            "$ref": "#/components/parameters/path-post-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "artist_id": {
+                      "type": "string"
+                    },
+                    "post_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No post found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/profile": {
+      "get": {
+        "summary": "Get a creator",
+        "tags": [
+          "Creators"
+        ],
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "The service where the creator is located",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The ID of the creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Creator details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The ID of the creator"
+                    },
+                    "public_id": {
+                      "type": [
+                        "string",
+                        null
+                      ],
+                      "description": "The public ID of the creator"
+                    },
+                    "service": {
+                      "type": "string",
+                      "description": "The service where the creator is located"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The creator's display name"
+                    },
+                    "indexed": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "The time the creator was last indexed"
+                    },
+                    "updated": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "The time the creator was last updated"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The creator could not be found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "The error message",
+                      "enum": [
+                        "Creator not found."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/announcements": {
+      "get": {
+        "summary": "Get creator announcements",
+        "tags": [
+          "Posts"
+        ],
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "required": true,
+            "description": "The service name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "required": true,
+            "description": "The creator's ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "service": {
+                        "type": "string"
+                      },
+                      "user_id": {
+                        "type": "string"
+                      },
+                      "hash": {
+                        "type": "string",
+                        "description": "sha256"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "added": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "isoformat UTC"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "service": "patreon",
+                    "user_id": "8693043",
+                    "hash": "820b7397c7f75efb13c4a8aa5d4aacfbb200749f3e1cec16e9f2951d158be8c2",
+                    "content": "Hey guys, thank you so much for your support, that means a lot to me!",
+                    "added": "2023-01-31T05:16:15.462035"
+                  }
+                ]
+              }
+            }
+          },
+          "404": {
+            "description": "Artist not found"
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/fancards": {
+      "get": {
+        "summary": "Get fancards by creator, fanbox only",
+        "tags": [
+          "Posts"
+        ],
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "required": true,
+            "description": "The service name, has to be \"fanbox\"",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "required": true,
+            "description": "The creator's ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer"
+                      },
+                      "user_id": {
+                        "type": "string"
+                      },
+                      "file_id": {
+                        "type": "integer"
+                      },
+                      "hash": {
+                        "type": "string"
+                      },
+                      "mtime": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "ctime": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "mime": {
+                        "type": "string"
+                      },
+                      "ext": {
+                        "type": "string"
+                      },
+                      "added": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "size": {
+                        "type": "integer"
+                      },
+                      "ihash": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "server": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "id": 108058645,
+                      "user_id": "3316400",
+                      "file_id": 108058645,
+                      "hash": "727bf3f0d774a98c80cf6c76c3fb0e049522b88eb7f02c8d3fc59bae20439fcf",
+                      "mtime": "2023-05-23T15:09:43.941195",
+                      "ctime": "2023-05-23T15:09:43.941195",
+                      "mime": "image/jpeg",
+                      "ext": ".jpg",
+                      "added": "2023-05-23T15:09:43.960578",
+                      "size": 339710,
+                      "ihash": null
+                    },
+                    {
+                      "id": 103286760,
+                      "user_id": "3316400",
+                      "file_id": 103286760,
+                      "hash": "8b0d0f1be38efab9306b32c7b14b74ddd92a2513026c859a280fe737980a467d",
+                      "mtime": "2023-04-26T14:16:53.205183",
+                      "ctime": "2023-04-26T14:16:53.205183",
+                      "mime": "image/jpeg",
+                      "ext": ".jpg",
+                      "added": "2023-04-26T14:16:53.289143",
+                      "size": 339764,
+                      "ihash": null
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Artist not found"
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/links": {
+      "get": {
+        "summary": "Get a creator's linked accounts",
+        "tags": [
+          "Creators"
+        ],
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "The service where the creator is located",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The ID of the creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Linked accounts retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "The ID of the creator"
+                      },
+                      "public_id": {
+                        "type": [
+                          "string",
+                          null
+                        ],
+                        "description": "The public ID of the creator"
+                      },
+                      "service": {
+                        "type": "string",
+                        "description": "The service where the creator is located"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "The creator's display name"
+                      },
+                      "indexed": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The time the creator was last indexed"
+                      },
+                      "updated": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The time the creator was last updated"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The creator could not be found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "The error message",
+                      "enum": [
+                        "Creator not found."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Remove artist from linked accounts. Requires admin privilegies.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-service"
+          },
+          {
+            "$ref": "#/components/parameters/path-creator-id"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Artist's link was successfuly removed.",
+            "content": {
+              "plain/text": {
+                "schema": {
+                  "const": ""
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Insufficient privilegies.",
+            "content": {
+              "plain/text": {
+                "schema": {
+                  "const": ""
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/links/new": {
+      "get": {
+        "description": "Add links to the artist",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-service"
+          },
+          {
+            "$ref": "#/components/parameters/path-creator-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The data for the new link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "service": {
+                          "type": "string"
+                        },
+                        "artist": {
+                          "$ref": "#/components/schemas/artist"
+                        },
+                        "share_count": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        },
+                        "dm_count": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        },
+                        "has_links": {
+                          "enum": [
+                            "âœ”ï¸",
+                            "0"
+                          ]
+                        },
+                        "display_data": {
+                          "type": "object",
+                          "properties": {
+                            "service": {
+                              "type": "string"
+                            },
+                            "href": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "base": {
+                      "type": "object",
+                      "properties": {
+                        "service": {
+                          "type": "string"
+                        },
+                        "artist_id": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "Add links to the artist",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-service"
+          },
+          {
+            "$ref": "#/components/parameters/path-creator-id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "service",
+                  "artist_id"
+                ],
+                "properties": {
+                  "service": {
+                    "type": "string"
+                  },
+                  "artist_id": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 140
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The link request added to moderation queue.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "service": {
+                          "type": "string"
+                        },
+                        "artist": {
+                          "$ref": "#/components/schemas/artist"
+                        },
+                        "share_count": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        },
+                        "has_links": {
+                          "enum": [
+                            "âœ”ï¸",
+                            "0"
+                          ]
+                        },
+                        "display_data": {
+                          "type": "object",
+                          "properties": {
+                            "service": {
+                              "type": "string"
+                            },
+                            "href": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failed to added the new link due to input errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "text"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/tags": {
+      "get": {
+        "description": "Tags of profile",
+        "tags": [
+          "Creators"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-service"
+          },
+          {
+            "$ref": "#/components/parameters/path-creator-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found the tags for the profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "display_data": {
+                        "type": "object",
+                        "properties": {
+                          "service": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "artist": {
+                        "$ref": "#/components/schemas/artist"
+                      },
+                      "service": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "share_count": {
+                        "type": "integer"
+                      },
+                      "dm_count": {
+                        "type": "integer"
+                      },
+                      "has_links": {
+                        "enum": [
+                          "âœ”ï¸",
+                          "0"
+                        ]
+                      }
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/tag"
+                      }
+                    },
+                    "service": {
+                      "type": "string"
+                    },
+                    "artist": {
+                      "$ref": "#/components/schemas/artist"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/shares": {
+      "get": {
+        "description": "Shares of the artist",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-service"
+          },
+          {
+            "$ref": "#/components/parameters/path-creator-id"
+          },
+          {
+            "$ref": "#/components/parameters/query-o"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found the shares for the artist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/share"
+                      }
+                    },
+                    "props": {
+                      "display_data": {
+                        "type": "object",
+                        "properties": {
+                          "service": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "service": {
+                        "type": "string"
+                      },
+                      "artist": {
+                        "$ref": "#/components/schemas/artist"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "dm_count": {
+                        "type": "integer"
+                      },
+                      "share_count": {
+                        "type": "integer"
+                      },
+                      "has_links": {
+                        "enum": [
+                          "âœ”ï¸",
+                          "0"
+                        ]
+                      }
+                    },
+                    "base": {
+                      "type": "object",
+                      "properties": {
+                        "service": {
+                          "type": "string"
+                        },
+                        "artist_id": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/dms": {
+      "get": {
+        "description": "Direct messages of profile",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-service"
+          },
+          {
+            "$ref": "#/components/parameters/path-creator-id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found direct messages for the profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "service": {
+                        "type": "string"
+                      },
+                      "artist": {
+                        "$ref": "#/components/schemas/artist"
+                      },
+                      "display_data": {
+                        "type": "object",
+                        "properties": {
+                          "service": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "share_count": {
+                        "type": "integer"
+                      },
+                      "dm_count": {
+                        "type": "integer"
+                      },
+                      "dms": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/approved-dm"
+                        }
+                      },
+                      "has_links": {
+                        "enum": [
+                          "âœ”ï¸",
+                          "0"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/posts": {
+      "get": {
+        "description": "A duct-tape endpoint which also returns count for pagination component.",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "required": true,
+            "description": "The service name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "required": true,
+            "description": "The profiles's ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "description": "A list of post tags",
+            "schema": {
+              "type": "array"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found posts of the profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentPage": {
+                          "const": "posts"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "service": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "count": {
+                          "type": "integer"
+                        },
+                        "limit": {
+                          "type": "integer"
+                        },
+                        "artist": {
+                          "$ref": "#/components/schemas/artist"
+                        },
+                        "display_data": {
+                          "type": "object",
+                          "properties": {
+                            "service": {
+                              "type": "string"
+                            },
+                            "href": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "dm_count": {
+                          "type": "integer"
+                        },
+                        "share_count": {
+                          "type": "integer"
+                        },
+                        "has_links": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "base": {
+                      "type": "object"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/post"
+                      }
+                    },
+                    "result_previews": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "result_attachments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "result_is_image": {
+                      "type": "array",
+                      "items": {
+                        "type": "boolean"
+                      }
+                    },
+                    "disable_service_icons": {
+                      "const": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/post/{post_id}": {
+      "get": {
+        "summary": "Get a specific post",
+        "tags": [
+          "Posts"
+        ],
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "required": true,
+            "description": "The service name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "required": true,
+            "description": "The creator's ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "post_id",
+            "in": "path",
+            "required": true,
+            "description": "The post ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "post": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "user": {
+                          "type": "string"
+                        },
+                        "service": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        },
+                        "embed": {
+                          "type": "object"
+                        },
+                        "shared_file": {
+                          "type": "boolean"
+                        },
+                        "added": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "published": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "edited": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "file": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "attachments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "type": "string"
+                        },
+                        "prev": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "attachments": {
+                      "type": "array"
+                    },
+                    "previews": {
+                      "type": "array"
+                    },
+                    "videos": {
+                      "type": "array"
+                    },
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "service": {
+                          "type": "string"
+                        },
+                        "flagged": {
+                          "type": "integer"
+                        },
+                        "revisions": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/post-revision"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "post": {
+                    "id": "1836570",
+                    "user": "6570768",
+                    "service": "fanbox",
+                    "title": "ä»Šæ—¥ã¯FANBOXã‚’å§‹ã¾ã‚Šã¾ã—ãŸï¼",
+                    "content": "<p>ã¿ãªã•ã‚“ã“ã‚“ã«ã¡ã¯ã€å½±ãŠã˜ã§ã™ã€‚</p><p>å…ˆé€±ã®ã‚ˆã†ã«ã€FANBOXã‚’å§‹ã¾ã‚Šã«æ±ºå®šã—ã¾ã—ãŸï¼</p><p>ãã—ã¦FANBOXã®æ›´æ–°å†…å®¹ã«ã¤ã„ã¦ã€ã‚¢ãƒ³ã‚±ãƒ¼ãƒˆã®ã¿ãªã•ã‚“</p><p>ã‚ã‚ŠãŒã¨ã†ã”ã–ã„ã¾ã—ãŸï¼</p><p><br/></p><p>ã§ã¯æ›´æ–°å†…å®¹ã®è©³ã—ã„ã“ã¨ã¯ã“ã¡ã‚‰ã§ã™â†“</p><p>æ¯Žå›žã®çµµã€å…ƒã‚‚å·®åˆ†ãŒã‚ã‚Šã¾ã›ã‚“ã®å ´åˆã€ãƒœãƒŠã‚¹ã¨ã—ã¦å·®åˆ†ã‚¤ãƒ©ã‚¹ãƒˆã‚’æ”¯æ´è€…ã®çš†æ§˜ã«ãƒ—ãƒ¬ã‚¼ãƒ³ãƒˆã€‚</p><p>ã‚‚ã¨ã‚‚å·®åˆ†ãŒã‚ã‚Œã°ã€ãƒœãƒŠã‚¹ã¨ã—ã¦ãƒŒãƒ¼ãƒ‰å·®åˆ†ã‚¤ãƒ©ã‚¹ãƒˆã‚’æ”¯æ´è€…ã®çš†æ§˜ã«ãƒ—ãƒ¬ã‚¼ãƒ³ãƒˆã€‚</p><p><br/></p><p>ã“ã‚Œã‹ã‚‰ã€ä»•äº‹ä»¥å¤–ã®æ™‚é–“ã€ã§ãã‚‹é™ã‚Šå‹¤å‹‰ãªæ›´æ–°ã—ãŸã„ã¨æ€ã„ã¾ã™ï¼</p><p>ã©ã†ãžã‚ˆã‚ã—ããŠé¡˜ã„ã„ãŸã—ã¾ã™ï¼</p>",
+                    "embed": {},
+                    "shared_file": false,
+                    "added": "2021-03-30T18:00:05.973913",
+                    "published": "2021-01-24T17:54:38",
+                    "edited": "2021-01-24T18:46:15",
+                    "file": {
+                      "name": "a99d9674-5490-400e-acca-4bed99590699.jpg",
+                      "path": "/5c/98/5c984d1f62f0990a0891d8fa359aecdff6ac1e26ac165ba7bb7f31cc99e7a674.jpg"
+                    },
+                    "attachments": [],
+                    "next": null,
+                    "prev": "1836649"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Post not found"
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/post/{post_id}/revision/{revision_id}": {
+      "get": {
+        "description": "Get revision of a post",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/path-service"
+          },
+          {
+            "$ref": "#/components/parameters/path-creator-id"
+          },
+          {
+            "$ref": "#/components/parameters/path-post-id"
+          },
+          {
+            "name": "revision_id",
+            "in": "path",
+            "description": "ID of the revision",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A revision of the post.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentPage": {
+                          "const": "revisions"
+                        },
+                        "service": {
+                          "type": "string"
+                        },
+                        "artist": {
+                          "$ref": "#/components/schemas/artist"
+                        },
+                        "flagged": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        },
+                        "revisions": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/post-revision"
+                          }
+                        }
+                      }
+                    },
+                    "post": {
+                      "$ref": "#/components/schemas/post-revision"
+                    },
+                    "comments": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/comment"
+                      }
+                    },
+                    "result_previews": {
+                      "type": "array"
+                    },
+                    "result_attachments": {
+                      "type": "array"
+                    },
+                    "videos": {
+                      "type": "array"
+                    },
+                    "archives_enabled": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Failed to find the revision of the post.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/discord/channel/{channel_id}": {
+      "get": {
+        "tags": [
+          "Discord"
+        ],
+        "summary": "Get Discord channel posts by offset",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "description": "ID of the Discord channel",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "o",
+            "in": "query",
+            "description": "Result offset, stepping of 150 is enforced",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Discord channel found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "author": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "avatar": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "public_flags": {
+                            "type": "integer"
+                          },
+                          "discriminator": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "server": {
+                        "type": "string"
+                      },
+                      "channel": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "added": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "published": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "edited": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "embeds": {
+                        "type": "array",
+                        "items": {}
+                      },
+                      "mentions": {
+                        "type": "array",
+                        "items": {}
+                      },
+                      "attachments": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": "942909658610413578",
+                    "author": {
+                      "id": "421590382300889088",
+                      "avatar": "0956f3dc18eba7da9daedc4e50fb96d0",
+                      "username": "Merry",
+                      "public_flags": 0,
+                      "discriminator": "7849"
+                    },
+                    "server": "455285536341491714",
+                    "channel": "455287420959850496",
+                    "content": "@everyone Happy Valentineâ€™s Day! ðŸ’œâœ¨",
+                    "added": "2022-02-15T01:26:12.708959",
+                    "published": "2022-02-14T22:26:21.027000",
+                    "edited": null,
+                    "embeds": [],
+                    "mentions": [],
+                    "attachments": []
+                  },
+                  {
+                    "id": "942909571947712594",
+                    "author": {
+                      "id": "421590382300889088",
+                      "avatar": "0956f3dc18eba7da9daedc4e50fb96d0",
+                      "username": "Merry",
+                      "public_flags": 0,
+                      "discriminator": "7849"
+                    },
+                    "server": "455285536341491714",
+                    "channel": "455287420959850496",
+                    "content": "",
+                    "added": "2022-02-15T01:26:13.006228",
+                    "published": "2022-02-14T22:26:00.365000",
+                    "edited": null,
+                    "embeds": [],
+                    "mentions": [],
+                    "attachments": [
+                      {
+                        "name": "sofa_03.png",
+                        "path": "/3b/4e/3b4ed5aabdd85b26fbbc3ee9b0e5649df69167efe26b5abc24cc2a1159f446d4.png"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "404": {
+            "description": "Discord channel not found"
+          }
+        }
+      }
+    },
+    "/v1/discord/channel/lookup/{discord_server}": {
+      "get": {
+        "tags": [
+          "Discord"
+        ],
+        "summary": "Lookup Discord channels",
+        "parameters": [
+          {
+            "name": "discord_server",
+            "in": "path",
+            "description": "Discord Server ID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Discord channels found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": "455285536341491716",
+                    "name": "news"
+                  },
+                  {
+                    "id": "455287420959850496",
+                    "name": "nyarla-lewds"
+                  }
+                ]
+              }
+            }
+          },
+          "404": {
+            "description": "Discord server not found"
+          }
+        }
+      }
+    },
+    "/v1/authentication/register": {
+      "post": {
+        "description": "Register an account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "confirm_password": {
+                    "type": "string"
+                  },
+                  "favorites_json": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failed to register due to user errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/authentication/login": {
+      "post": {
+        "description": "Sign in to account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Succefully logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/account"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failed to log in due to user errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/authentication/logout": {
+      "post": {
+        "description": "Logout from account",
+        "responses": {
+          "200": {
+            "description": "Succefuuly logged out from account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "const": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account": {
+      "get": {
+        "description": "Get account data",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentPage": {
+                          "const": "account"
+                        },
+                        "title": {
+                          "const": "Your account page"
+                        },
+                        "account": {
+                          "$ref": "#/components/schemas/account"
+                        },
+                        "notifications_count": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/change_password": {
+      "post": {
+        "description": "Change account password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "current-password",
+                  "new-password",
+                  "new-password-confirmation"
+                ],
+                "properties": {
+                  "current-password": {
+                    "type": "string"
+                  },
+                  "new-password": {
+                    "type": "string"
+                  },
+                  "new-password-confirmation": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully changed account password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "const": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/notifications": {
+      "get": {
+        "description": "Get account notifications",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of account notifications.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "currentPage": {
+                      "const": "account"
+                    },
+                    "notifications": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/notification"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/keys": {
+      "get": {
+        "description": "Get account autoimport keys",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of account keys.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentPage": {
+                          "const": "account"
+                        },
+                        "title": {
+                          "const": "Your service keys"
+                        },
+                        "service_keys": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/service-key"
+                          }
+                        }
+                      }
+                    },
+                    "import_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key_id": {
+                            "type": "string"
+                          },
+                          "import_id": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "Revoke account autoimport keys",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "revoke": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/positive-integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account import keys revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentPage": {
+                          "const": "account"
+                        },
+                        "redirect": {
+                          "const": "/account/keys"
+                        },
+                        "message": {
+                          "const": "Success!"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/favorites": {
+      "get": {
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "List Account Favorites",
+        "description": "List account favorites (posts or creators) for the authenticated user (cookie session)",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Type of favorites to list (post or creator (artist) )",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "post",
+                "artist"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of account favorites",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "faved_seq": {
+                        "type": "integer",
+                        "description": "The sequence number of the favorite"
+                      },
+                      "id": {
+                        "type": "string",
+                        "description": "The ID of the favorite (post or creator)"
+                      },
+                      "indexed": {
+                        "type": "string",
+                        "description": "Timestamp when the creator was indexed isoformat"
+                      },
+                      "last_imported": {
+                        "type": "string",
+                        "description": "Timestamp when the creator was last imported"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "The name of the creator"
+                      },
+                      "service": {
+                        "type": "string",
+                        "description": "The service where the creator is located"
+                      },
+                      "updated": {
+                        "type": "string",
+                        "description": "Timestamp when the creator was last updated"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/schemas/401"
+          }
+        }
+      }
+    },
+    "/v1/account/posts/upload": {
+      "get": {
+        "description": "Upload posts.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Upload posts maybe???",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "currentPage": {
+                      "const": "posts"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/review_dms": {
+      "get": {
+        "description": "Get DMs for review.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Status of the DM.",
+            "schema": {
+              "enum": [
+                "ignored",
+                "pending"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of unapproved DMs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "currentPage": {
+                      "const": "import"
+                    },
+                    "account_id": {
+                      "$ref": "#/components/schemas/positive-integer"
+                    },
+                    "dms": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/unapproved-dm"
+                      }
+                    },
+                    "status": {
+                      "enum": [
+                        "ignored",
+                        "pending"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "description": "Approve DMs.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "approved_hashes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "delete_ignored": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approved DMs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "const": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/moderator/tasks/creator_links": {
+      "get": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "Get a list of pending artist link requests",
+        "responses": {
+          "200": {
+            "description": "A list of pending artist link requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/unapproved-link"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/moderator/creator_link_requests/{request_id}/approve": {
+      "post": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "Approve a new artist link.",
+        "responses": {
+          "200": {
+            "description": "Successfully approved a new artist link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "response": {
+                      "const": "approved"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/account/moderator/creator_link_requests/{request_id}/reject": {
+      "post": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "description": "Reject a new artist link.",
+        "responses": {
+          "200": {
+            "description": "Successfully rejected a new artist link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "response": {
+                      "const": "rejected"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/favorites/post/{service}/{creator_id}/{post_id}": {
+      "post": {
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Add Favorite Post",
+        "description": "Add a post to the user's favorite posts",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "Service of the post",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The ID of the creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "post_id",
+            "in": "path",
+            "description": "The ID of the post",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Favorite post added successfully",
+            "content": {}
+          },
+          "302": {
+            "description": "Redirect to login if not authenticated",
+            "content": {}
+          },
+          "401": {
+            "$ref": "#/components/schemas/401"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Remove Favorite Post",
+        "description": "Remove a post from the user's favorite posts",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "The service where the post is located",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The ID of the creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "post_id",
+            "in": "path",
+            "description": "The ID of the post",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unfavorite post removed successfully",
+            "content": {}
+          },
+          "302": {
+            "description": "Redirect to login if not authenticated",
+            "content": {}
+          },
+          "401": {
+            "$ref": "#/components/schemas/401"
+          }
+        }
+      }
+    },
+    "/v1/favorites/creator/{service}/{creator_id}": {
+      "post": {
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Add Favorite creator",
+        "description": "Add an creator to the user's favorite creators",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "The service where the creator is located",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The ID of the creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Favorite creator added successfully",
+            "content": {}
+          },
+          "302": {
+            "description": "Redirect to login if not authenticated",
+            "content": {}
+          },
+          "401": {
+            "$ref": "#/components/schemas/401"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "summary": "Remove Favorite Creator",
+        "description": "Remove an creator from the user's favorite creators",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "The service where the creator is located",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The ID of the creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Favorite creator removed successfully",
+            "content": {}
+          },
+          "302": {
+            "description": "Redirect to login if not authenticated",
+            "content": {}
+          },
+          "401": {
+            "$ref": "#/components/schemas/401"
+          }
+        }
+      }
+    },
+    "/v1/search_hash/{file_hash}": {
+      "get": {
+        "tags": [
+          "File Search"
+        ],
+        "summary": "Lookup file by hash",
+        "parameters": [
+          {
+            "name": "file_hash",
+            "in": "path",
+            "required": true,
+            "description": "SHA-2 / SHA-256",
+            "schema": {
+              "type": "string",
+              "format": "hex",
+              "minLength": 64,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "hash": {
+                      "type": "string"
+                    },
+                    "mtime": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "ctime": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "mime": {
+                      "type": "string"
+                    },
+                    "ext": {
+                      "type": "string"
+                    },
+                    "added": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "ihash": {
+                      "type": "string"
+                    },
+                    "posts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file_id": {
+                            "type": "integer"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "user": {
+                            "type": "string"
+                          },
+                          "service": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "substring": {
+                            "type": "string"
+                          },
+                          "published": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "file": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "attachments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "discord_posts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "file_id": {
+                            "type": "integer"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "server": {
+                            "type": "string"
+                          },
+                          "channel": {
+                            "type": "string"
+                          },
+                          "substring": {
+                            "type": "string"
+                          },
+                          "published": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "embeds": {
+                            "type": "array",
+                            "items": {}
+                          },
+                          "mentions": {
+                            "type": "array",
+                            "items": {}
+                          },
+                          "attachments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "id": 40694581,
+                  "hash": "b926020cf035af45a1351e0a7e2c983ebcc93b4c751998321a6593a98277cdeb",
+                  "mtime": "2021-12-04T07:16:09.385539",
+                  "ctime": "2021-12-04T07:16:09.385539",
+                  "mime": "image/png",
+                  "ext": ".png",
+                  "added": "2021-12-04T07:16:09.443016",
+                  "size": 10869921,
+                  "ihash": null,
+                  "posts": [
+                    {
+                      "file_id": 108400151,
+                      "id": "5956097",
+                      "user": "21101760",
+                      "service": "fanbox",
+                      "title": "Loli Bae",
+                      "substring": "Thank you for your continued support!\nã„ã¤ã‚‚æ”¯æ´ã‚ã‚ŠãŒã¨ã†ã”",
+                      "published": "2023-05-14T00:00:00",
+                      "file": {
+                        "name": "8f183dac-470d-4587-9657-23efe8890a7b.jpg",
+                        "path": "/e5/1f/e51fc831dfdac7a21cc650ad46af59340e35e2a051aed8c1e65633592f4dc11c.jpg"
+                      },
+                      "attachments": [
+                        {
+                          "name": "b644eb9c-cffa-400e-9bd6-40cccb2331ba.png",
+                          "path": "/5e/b3/5eb3197668ac23bd7c473d3c750334eb206b060c610e4ac5fa1a9370fd1314d9.png"
+                        },
+                        {
+                          "name": "17f295ba-a9f2-4034-aafc-bf74904ec144.png",
+                          "path": "/88/ad/88ad2ba77c89e4d7a9dbe1f9531ba3e3077a82aee2b61efa29fda122ebe1b516.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "discord_posts": [
+                    {
+                      "file_id": 40694581,
+                      "id": "769704201495904286",
+                      "server": "455285536341491714",
+                      "channel": "769703874356445216",
+                      "substring": "",
+                      "published": "2020-10-24T23:29:42.049",
+                      "embeds": [],
+                      "mentions": [],
+                      "attachments": [
+                        {
+                          "name": "3.png",
+                          "path": "/b9/26/b926020cf035af45a1351e0a7e2c983ebcc93b4c751998321a6593a98277cdeb.png"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found"
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/post/{post}/flag": {
+      "post": {
+        "tags": [
+          "Post Flagging"
+        ],
+        "summary": "Flag a post",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "post",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Flagged successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "const": true
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already flagged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "const": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Post Flagging"
+        ],
+        "summary": "Check if a Post is flagged",
+        "description": "Check if a Post is flagged",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "The service where the post is located",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The creator of the post",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "post",
+            "in": "path",
+            "description": "The ID of the post to flag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The post is flagged",
+            "content": {}
+          },
+          "404": {
+            "description": "The post has no flag",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/post/{post_id}/revisions": {
+      "get": {
+        "tags": [
+          "Posts"
+        ],
+        "summary": "List a Post's Revisions",
+        "description": "List revisions of a specific post by service, creator_id, and post_id",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "The service where the post is located",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The ID of the creator",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "post_id",
+            "in": "path",
+            "description": "The ID of the post",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of post revisions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "revision_id": {
+                        "type": "integer"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "user": {
+                        "type": "string"
+                      },
+                      "service": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "embed": {
+                        "type": "object"
+                      },
+                      "shared_file": {
+                        "type": "boolean"
+                      },
+                      "added": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "published": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "edited": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "file": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "attachments": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "revision_id": 8059287,
+                    "id": "1836570",
+                    "user": "6570768",
+                    "service": "fanbox",
+                    "title": "ä»Šæ—¥ã¯FANBOXã‚’å§‹ã¾ã‚Šã¾ã—ãŸï¼",
+                    "content": "<p>ã¿ãªã•ã‚“ã“ã‚“ã«ã¡ã¯ã€å½±ãŠã˜ã§ã™ã€‚</p><p>å…ˆé€±ã®ã‚ˆã†ã«ã€FANBOXã‚’å§‹ã¾ã‚Šã«æ±ºå®šã—ã¾ã—ãŸï¼</p><p>ãã—ã¦FANBOXã®æ›´æ–°å†…å®¹ã«ã¤ã„ã¦ã€ã‚¢ãƒ³ã‚±ãƒ¼ãƒˆã®ã¿ãªã•ã‚“</p><p>ã‚ã‚ŠãŒã¨ã†ã”ã–ã„ã¾ã—ãŸï¼</p><p><br/></p><p>ã§ã¯æ›´æ–°å†…å®¹ã®è©³ã—ã„ã“ã¨ã¯ã“ã¡ã‚‰ã§ã™â†“</p><p>æ¯Žå›žã®çµµã€å…ƒã‚‚å·®åˆ†ãŒã‚ã‚Šã¾ã›ã‚“ã®å ´åˆã€ãƒœãƒŠã‚¹ã¨ã—ã¦å·®åˆ†ã‚¤ãƒ©ã‚¹ãƒˆã‚’æ”¯æ´è€…ã®çš†æ§˜ã«ãƒ—ãƒ¬ã‚¼ãƒ³ãƒˆã€‚</p><p>ã‚‚ã¨ã‚‚å·®åˆ†ãŒã‚ã‚Œã°ã€ãƒœãƒŠã‚¹ã¨ã—ã¦ãƒŒãƒ¼ãƒ‰å·®åˆ†ã‚¤ãƒ©ã‚¹ãƒˆã‚’æ”¯æ´è€…ã®çš†æ§˜ã«ãƒ—ãƒ¬ã‚¼ãƒ³ãƒˆã€‚</p><p><br/></p><p>ã“ã‚Œã‹ã‚‰ã€ä»•äº‹ä»¥å¤–ã®æ™‚é–“ã€ã§ãã‚‹é™ã‚Šå‹¤å‹‰ãªæ›´æ–°ã—ãŸã„ã¨æ€ã„ã¾ã™ï¼</p><p>ã©ã†ãžã‚ˆã‚ã—ããŠé¡˜ã„ã„ãŸã—ã¾ã™ï¼</p>",
+                    "embed": {},
+                    "shared_file": false,
+                    "added": "2023-09-19T13:19:57.416086",
+                    "published": "2021-01-24T17:54:38",
+                    "edited": "2021-01-24T18:46:15",
+                    "file": {
+                      "name": "8c2be0fd-a130-4afb-9314-80f2501d94f7.jpg",
+                      "path": "/5c/98/5c984d1f62f0990a0891d8fa359aecdff6ac1e26ac165ba7bb7f31cc99e7a674.jpg"
+                    },
+                    "attachments": [
+                      {
+                        "name": "attachment1.jpg",
+                        "path": "/attachments/attachment1.jpg"
+                      },
+                      {
+                        "name": "attachment2.jpg",
+                        "path": "/attachments/attachment2.jpg"
+                      }
+                    ]
+                  },
+                  {
+                    "revision_id": 6770513,
+                    "id": "1836570",
+                    "user": "6570768",
+                    "service": "fanbox",
+                    "title": "ä»Šæ—¥ã¯FANBOXã‚’å§‹ã¾ã‚Šã¾ã—ãŸï¼",
+                    "content": "<p>ã¿ãªã•ã‚“ã“ã‚“ã«ã¡ã¯ã€å½±ãŠã˜ã§ã™ã€‚</p><p>å…ˆé€±ã®ã‚ˆã†ã«ã€FANBOXã‚’å§‹ã¾ã‚Šã«æ±ºå®šã—ã¾ã—ãŸï¼</p><p>ãã—ã¦FANBOXã®æ›´æ–°å†…å®¹ã«ã¤ã„ã¦ã€ã‚¢ãƒ³ã‚±ãƒ¼ãƒˆã®ã¿ãªã•ã‚“</p><p>ã‚ã‚ŠãŒã¨ã†ã”ã–ã„ã¾ã—ãŸï¼</p><p><br/></p><p>ã§ã¯æ›´æ–°å†…å®¹ã®è©³ã—ã„ã“ã¨ã¯ã“ã¡ã‚‰ã§ã™â†“</p><p>æ¯Žå›žã®çµµã€å…ƒã‚‚å·®åˆ†ãŒã‚ã‚Šã¾ã›ã‚“ã®å ´åˆã€ãƒœãƒŠã‚¹ã¨ã—ã¦å·®åˆ†ã‚¤ãƒ©ã‚¹ãƒˆã‚’æ”¯æ´è€…ã®çš†æ§˜ã«ãƒ—ãƒ¬ã‚¼ãƒ³ãƒˆã€‚</p><p>ã‚‚ã¨ã‚‚å·®åˆ†ãŒã‚ã‚Œã°ã€ãƒœãƒŠã‚¹ã¨ã—ã¦ãƒŒãƒ¼ãƒ‰å·®åˆ†ã‚¤ãƒ©ã‚¹ãƒˆã‚’æ”¯æ´è€…ã®çš†æ§˜ã«ãƒ—ãƒ¬ã‚¼ãƒ³ãƒˆã€‚</p><p><br/></p><p>ã“ã‚Œã‹ã‚‰ã€ä»•äº‹ä»¥å¤–ã®æ™‚é–“ã€ã§ãã‚‹é™ã‚Šå‹¤å‹‰ãªæ›´æ–°ã—ãŸã„ã¨æ€ã„ã¾ã™ï¼</p><p>ã©ã†ãžã‚ˆã‚ã—ããŠé¡˜ã„ã„ãŸã—ã¾ã™ï¼</p>",
+                    "embed": {},
+                    "shared_file": false,
+                    "added": "2023-07-28T23:51:25.477291",
+                    "published": "2021-01-24T17:54:38",
+                    "edited": "2021-01-24T18:46:15",
+                    "file": {
+                      "name": "0d133e49-a2d4-4733-9044-dd57e25b1fce.jpg",
+                      "path": "/5c/98/5c984d1f62f0990a0891d8fa359aecdff6ac1e26ac165ba7bb7f31cc99e7a674.jpg"
+                    },
+                    "attachments": [
+                      {
+                        "name": "attachment3.jpg",
+                        "path": "/attachments/attachment3.jpg"
+                      },
+                      {
+                        "name": "attachment4.jpg",
+                        "path": "/attachments/attachment4.jpg"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "404": {
+            "description": "Post not found"
+          }
+        }
+      }
+    },
+    "/v1/{service}/user/{creator_id}/post/{post_id}/comments": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "List a post's comments",
+        "description": "List comments for a specific post by service, creator_id, and post_id.",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "path",
+            "description": "The post's service.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_id",
+            "in": "path",
+            "description": "The service ID of the post's creator.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "post_id",
+            "in": "path",
+            "description": "The service ID of the post.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of post comments.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "parent_id": {
+                        "type": "string - string - null"
+                      },
+                      "commenter": {
+                        "type": "string"
+                      },
+                      "content": {
+                        "type": "string"
+                      },
+                      "published": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "revisions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "content": {
+                              "type": "string"
+                            },
+                            "added": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": "121508687",
+                    "parent_id": null,
+                    "commenter": "84534108",
+                    "content": "YOU DREW MORE YAYYYY",
+                    "published": "2023-11-05T20:17:47.635000",
+                    "revisions": [
+                      {
+                        "id": 1,
+                        "content": "YOU DREW MORE YAYYYY2222222",
+                        "added": "2023-11-14T03:09:12.275975"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "404": {
+            "description": "No comments found."
+          }
+        }
+      }
+    },
+    "/v1/artists/random": {
+      "get": {
+        "description": "Get a random artist",
+        "responses": {
+          "200": {
+            "description": "A random artist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "artist_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No random artst exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/shares": {
+      "get": {
+        "description": "Get a list of shares",
+        "parameters": [
+          {
+            "name": "o",
+            "in": "query",
+            "description": "List's offset",
+            "schema": {
+              "$ref": "#/components/schemas/non-negative-integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of shares.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentPage": {
+                          "const": "shares"
+                        },
+                        "count": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        },
+                        "shares": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/share"
+                          }
+                        },
+                        "limit": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        }
+                      }
+                    },
+                    "base": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/share/{share_id}": {
+      "get": {
+        "description": "Get details of the share.",
+        "parameters": [
+          {
+            "name": "share_id",
+            "in": "path",
+            "description": "ID of the share.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Details of the share.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "share_files": {
+                      "type": "array"
+                    },
+                    "share": {
+                      "$ref": "#/components/schemas/share"
+                    },
+                    "base": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/dms": {
+      "get": {
+        "description": "Get a list of DMs.",
+        "parameters": [
+          {
+            "name": "o",
+            "in": "query",
+            "description": "List's offset",
+            "schema": {
+              "$ref": "#/components/schemas/non-negative-integer"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of DMs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "props": {
+                      "type": "object",
+                      "properties": {
+                        "currentPage": {
+                          "const": "artists"
+                        },
+                        "count": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        },
+                        "limit": {
+                          "$ref": "#/components/schemas/non-negative-integer"
+                        },
+                        "dms": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/approved-dm"
+                          }
+                        }
+                      }
+                    },
+                    "base": {
+                      "type": "object",
+                      "properties": {
+                        "q": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/has_pending_dms": {
+      "get": {
+        "description": "Check if there are pending DMs.",
+        "responses": {
+          "200": {
+            "description": "There are pending DMs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/app_version": {
+      "get": {
+        "tags": [
+          "Misc"
+        ],
+        "summary": "Git Commit Hash",
+        "description": "Show current App commit hash",
+        "responses": {
+          "200": {
+            "description": "Commit Hash",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "hex",
+                  "minLength": 40,
+                  "maxLength": 40,
+                  "examples": [
+                    "3b9cd5fab1d35316436968fe85c90ff2de0cdca0"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/importer/submit": {
+      "post": {
+        "description": "Create a site import",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "session_key": {
+                    "type": "string"
+                  },
+                  "auto_import": {
+                    "type": "string"
+                  },
+                  "save_session_key": {
+                    "type": "string"
+                  },
+                  "save_dms": {
+                    "type": "string"
+                  },
+                  "channel_ids": {
+                    "type": "string"
+                  },
+                  "x-bc": {
+                    "type": "string"
+                  },
+                  "auth_id": {
+                    "type": "string"
+                  },
+                  "user_agent": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Succesfully added new import",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "import_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/importer/logs/{import_id}": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Get import logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "path-service": {
+        "name": "service",
+        "in": "path",
+        "description": "The service where the creator is located",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "path-creator-id": {
+        "name": "creator_id",
+        "in": "path",
+        "description": "ID of the creator",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "path-post-id": {
+        "name": "post_id",
+        "in": "path",
+        "description": "ID of the post",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "path-page": {
+        "name": "page",
+        "in": "path",
+        "description": "Page of the collection.",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/positive-integer"
+        }
+      },
+      "query-q": {
+        "name": "q",
+        "in": "query",
+        "description": "Search query",
+        "schema": {
+          "type": "string",
+          "minLength": 3
+        }
+      },
+      "query-o": {
+        "name": "o",
+        "in": "query",
+        "description": "Result offset, stepping of 50 is enforced",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "securitySchemes": {
+      "cookieAuth": {
+        "description": "Session key that can be found in cookies after a successful login",
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session"
+      }
+    },
+    "schemas": {
+      "401": {
+        "title": "Unauthorized",
+        "description": "Unauthorized Access"
+      },
+      "request-body": {
+        "title": "RequestBody",
+        "description": "Body of the request to V2 API. Must always be present on methods which allow a body.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "Sneed's Feed & Seed (formerly Chuck's)"
+          }
+        }
+      },
+      "request-body-with-data": {
+        "title": "RequestBodyWithData",
+        "description": "Body of the request with extra data to V2 API.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "data"
+        ],
+        "properties": {
+          "type": {
+            "const": "Sneed's Feed & Seed (formerly Chuck's)"
+          },
+          "data": true
+        }
+      },
+      "response-body-success": {
+        "title": "ResponseBodySuccess",
+        "description": "Body of the successful response from V2 API.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "data"
+        ],
+        "properties": {
+          "type": {
+            "const": "Chuck's Fuck & Suck (formerly Boyle's)"
+          },
+          "data": true
+        }
+      },
+      "response-body-error": {
+        "title": "ResponseBodyError",
+        "description": "Body of the error response from V2 API.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "data"
+        ],
+        "properties": {
+          "type": {
+            "const": "Boyle's Foil & Soil (formerly Sneed's)"
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "error": {
+        "title": "Error",
+        "description": "Error message",
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "non-negative-integer": {
+        "title": "NonNegativeInteger",
+        "description": "Integer which cannot be below zero.",
+        "type": "integer",
+        "minimum": 0
+      },
+      "positive-integer": {
+        "title": "PositiveInteger",
+        "description": "Integer which is always above zero.",
+        "type": "integer",
+        "minimum": 1
+      },
+      "hash-sha256": {
+        "title": "HashSHA256",
+        "type": "string",
+        "minLength": 64,
+        "maxLength": 64
+      },
+      "artist": {
+        "title": "Artist",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "indexed": {
+            "type": "string"
+          },
+          "updated": {
+            "type": "string"
+          },
+          "public_id": {
+            "type": "string"
+          },
+          "relation_id": {
+            "type": "integer"
+          }
+        }
+      },
+      "tag": {
+        "title": "Tag",
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string"
+          },
+          "post_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "share": {
+        "title": "Share",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "uploader": {
+            "type": "integer"
+          },
+          "added": {
+            "type": "string"
+          }
+        }
+      },
+      "approved-dm": {
+        "title": "ApprovedDM",
+        "description": "The public visible DM.",
+        "type": "object",
+        "required": [
+          "hash",
+          "user",
+          "service",
+          "content",
+          "embed",
+          "file",
+          "added",
+          "published"
+        ],
+        "properties": {
+          "hash": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "embed": {
+            "type": "object"
+          },
+          "file": {
+            "type": "object"
+          },
+          "added": {
+            "type": "string"
+          },
+          "published": {
+            "type": "string"
+          },
+          "artist": {
+            "$ref": "#/components/schemas/artist"
+          }
+        }
+      },
+      "unapproved-dm": {
+        "title": "UnapprovedDM",
+        "description": "The DM which is shown to the importing user.",
+        "type": "object",
+        "properties": {
+          "hash": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "artist": {
+            "type": "object"
+          },
+          "import_id": {
+            "type": "string"
+          },
+          "contributor_id": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "embed": {
+            "type": "object"
+          },
+          "file": {
+            "type": "object"
+          },
+          "added": {
+            "type": "string"
+          },
+          "published": {
+            "type": "string"
+          }
+        }
+      },
+      "post": {
+        "title": "Post",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "embed": {
+            "type": "object"
+          },
+          "shared_file": {
+            "type": "boolean"
+          },
+          "added": {
+            "type": "string"
+          },
+          "published": {
+            "type": "string"
+          },
+          "edited": {
+            "type": "string"
+          },
+          "file": {
+            "type": "object"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "post-with-fav-count": {
+        "title": "Post",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "embed": {
+            "type": "object"
+          },
+          "shared_file": {
+            "type": "boolean"
+          },
+          "added": {
+            "type": "string"
+          },
+          "published": {
+            "type": "string"
+          },
+          "edited": {
+            "type": "string"
+          },
+          "file": {
+            "type": "object"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "fav_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "post-revision": {
+        "title": "PostRevision",
+        "type": "object",
+        "properties": {
+          "revision_id": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "embed": {
+            "type": "object"
+          },
+          "shared_file": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "const": "0"
+              }
+            ]
+          },
+          "added": {
+            "type": "string"
+          },
+          "published": {
+            "type": "string"
+          },
+          "edited": {
+            "type": "string"
+          },
+          "file": {
+            "type": "object"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "size": {
+            "$ref": "#/components/schemas/non-negative-integer"
+          },
+          "ihash": {
+            "type": "string"
+          },
+          "poll": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "captions": {
+            "type": "object"
+          }
+        }
+      },
+      "comment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "post_id": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "string"
+          },
+          "commenter": {
+            "type": "string"
+          },
+          "service": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "added": {
+            "type": "string"
+          },
+          "published": {
+            "type": "string"
+          },
+          "deleted_at": {
+            "type": "string"
+          },
+          "commenter_name": {
+            "type": "string"
+          }
+        }
+      },
+      "file": {
+        "title": "File",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "mtime": {
+            "type": "string"
+          },
+          "ctime": {
+            "type": "string"
+          },
+          "mime": {
+            "type": "string"
+          },
+          "ext": {
+            "type": "string"
+          },
+          "added": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "ihash": {
+            "type": "string"
+          }
+        }
+      },
+      "archive-info": {
+        "title": "ArchiveInfo",
+        "type": "object",
+        "required": [
+          "file",
+          "file_list"
+        ],
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/file"
+          },
+          "file_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "account": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "username": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "consumer",
+              "moderator",
+              "administrator"
+            ]
+          }
+        }
+      },
+      "notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "account_id": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "is_seen": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string"
+          },
+          "extra_info": {
+            "type": "object"
+          }
+        }
+      },
+      "service-key": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "service": {
+            "type": "string"
+          },
+          "added": {
+            "type": "string"
+          },
+          "dead": {
+            "type": "boolean"
+          },
+          "contributor_id": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "encrypted_key": {
+            "type": "string"
+          },
+          "discord_channel_ids": {
+            "type": "string"
+          }
+        }
+      },
+      "pagination": {
+        "title": "Pagination",
+        "description": "Pagination info of a collection.",
+        "type": "object",
+        "properties": {
+          "current_page": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "limit": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "base": {
+            "type": "object"
+          },
+          "offset": {
+            "$ref": "#/components/schemas/non-negative-integer"
+          },
+          "count": {
+            "$ref": "#/components/schemas/non-negative-integer"
+          },
+          "current_count": {
+            "$ref": "#/components/schemas/non-negative-integer"
+          },
+          "total_pages": {
+            "$ref": "#/components/schemas/positive-integer"
+          }
+        }
+      },
+      "unapproved-link": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "from_service": {
+            "type": "string"
+          },
+          "from_id": {
+            "type": "string"
+          },
+          "to_service": {
+            "type": "string"
+          },
+          "to_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "requester_id": {
+            "$ref": "#/components/schemas/positive-integer"
+          },
+          "status": {
+            "const": "pending"
+          },
+          "from_creator": {
+            "type": "object"
+          },
+          "to_creator": {
+            "type": "object"
+          },
+          "requester": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

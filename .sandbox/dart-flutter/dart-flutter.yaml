@@ -1,0 +1,26 @@
+# syntax=docker/sandbox-kit:3
+schemaVersion: "3"
+kind: mixin
+
+displayName: Dart and Flutter
+description: Flutter SDK with its bundled Dart SDK for Dart and Flutter development
+sourceUrl: https://github.com/flutter/flutter
+
+version: "1.0.0"
+
+args:
+  flutterRef:
+    default: stable
+    pattern: "^[A-Za-z0-9._/-]+$"
+    description: Flutter Git branch, tag, or ref to install
+    buildArg: FLUTTER_REF
+
+capabilities:
+  - type: com.docker.sandbox/network-policy@1
+    config:
+      runtime:
+        allow:
+          - github.com
+          - api.github.com
+          - pub.dev
+          - storage.googleapis.com

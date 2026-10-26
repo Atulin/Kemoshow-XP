@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: "3"
+
+vars:
+  MIXIN_VERSION:
+    sh: yq -r '.version' "./.sandbox/dart-flutter/dart-flutter.yaml"
+
+tasks:
+  validate-mixin:
+    dir: .sandbox/dart-flutter
+    cmds:
+      - docker buildx build . -f dart-flutter.yaml --output=cacheonly
+      - rm -rf ./cacheonly
+
+  publish-mixin:
+    dir: .sandbox/dart-flutter
+    vars:
+      TOKEN:
+        sh: gh auth token
+        secret: true
+    cmds:
+      - cmd: echo "{{.TOKEN}}" | docker login ghcr.io -u Atulin --password-stdin
+        silent: true
+      - docker buildx build . -f dart-flutter.yaml --platform linux/amd64 -t "ghcr.io/atulin/dart-sanxbox-mixin:{{.MIXIN_VERSION}}" --push
+
+  slop: sbx run "ghcr.io/atulin/opencode-sandbox:1.5.0" --kit "ghcr.io/atulin/dart-sanxbox-mixin:{{.MIXIN_VERSION}}" .
