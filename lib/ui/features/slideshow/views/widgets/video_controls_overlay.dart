@@ -6,6 +6,7 @@ import 'package:media_kit/media_kit.dart';
 import '../../../../core/duration_label.dart';
 import '../../../../core/platform_support.dart';
 import 'shortcuts_help_dialog.dart';
+import 'video_overlay_surface.dart';
 
 /// Custom video controls drawn over the shared video output.
 ///
@@ -111,19 +112,14 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
+    return VideoOverlaySurface(
+      onTap: _toggle,
       onHover: (_) {
         if (!_visible) _show();
       },
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: _toggle,
-            ),
-          ),
           if (_error != null)
             Center(
               child: _VideoError(
