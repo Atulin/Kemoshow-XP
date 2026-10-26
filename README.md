@@ -35,6 +35,27 @@ endless slideshow — no pagination, no clicking through individual posts.
 | `H`, `?` | Show the shortcut reference |
 | `Esc` | Back to search |
 
+## Releases
+
+Pushing a `v*` tag publishes a GitHub release with an Android APK and a Windows
+x64 archive, built by [`.github/workflows/release.yml`](.github/workflows/release.yml):
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow first runs `flutter analyze` and `flutter test`, then builds the
+binaries and attaches them to the release. It can also be started manually from
+the Actions tab with an existing tag name. Flutter `3.47.8` is pinned in the
+workflow's `FLUTTER_VERSION` variable.
+
+The APK is signed with the Flutter debug keystore (see
+`android/app/build.gradle.kts`); configure a real signing key before
+distributing it. The Windows archive is portable: unzip it and run
+`kemoshow.exe` (the Microsoft Visual C++ 2015–2022 Redistributable may be
+needed on systems that do not already have it).
+
 ## Development
 
 ```sh

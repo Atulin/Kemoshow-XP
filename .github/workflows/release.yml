@@ -68,6 +68,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - uses: subosito/flutter-action@v2
         with:
@@ -128,7 +129,7 @@ jobs:
             throw 'Could not find the Windows release output (kemoshow.exe).'
           }
 
-          $archive = "dist/KemoShow-$env:RELEASE_TAG-windows-x64.zip"
+          $archive = "dist/KemoShow-${env:RELEASE_TAG}-windows-x64.zip"
           Compress-Archive -Path (Join-Path $release.FullName '*') -DestinationPath $archive
           Get-Item $archive | Format-List Name, Length
 
@@ -169,5 +170,6 @@ jobs:
               Flutter debug keystore, so uninstall any previously installed copy
               before installing this one.
             - **Windows x64** — `KemoShow-${{ env.RELEASE_TAG }}-windows-x64.zip`
-              Extract the archive and run `kemoshow.exe`. Windows 10 or newer;
-              no installer or additional runtime is required.
+              Extract the archive and run `kemoshow.exe`. Windows 10 or newer
+              x64; install the Microsoft Visual C++ 2015–2022 Redistributable if
+              the app does not start.
