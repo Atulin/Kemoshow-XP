@@ -79,9 +79,11 @@ through repository secrets:
 | Secret | Contents |
 | --- | --- |
 | `ANDROID_KEYSTORE_BASE64` | Base64 of the `flutter-release.jks` keystore |
-| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
-| `ANDROID_KEY_PASSWORD` | Key password; falls back to the keystore password |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password, also used for the key |
 | `ANDROID_KEY_ALIAS` | Optional; read from the keystore when unset |
+
+The keystore and key share one password, so the workflow reuses
+`ANDROID_KEYSTORE_PASSWORD` for both.
 
 The workflow decodes the keystore to `android/app/flutter-release.jks`, writes
 the git-ignored `android/key.properties`, builds with
