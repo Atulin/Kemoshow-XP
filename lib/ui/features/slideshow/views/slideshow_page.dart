@@ -9,9 +9,12 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../../core/kemono_server.dart';
 import '../../../../data/repositories/kemono_repository.dart';
+import '../../../../domain/models/app_settings.dart';
 import '../../../../domain/models/media_item.dart';
 import '../../../../domain/models/slideshow_source.dart';
+import '../../../core/platform_support.dart';
 import '../view_models/slideshow_view_model.dart';
+import 'widgets/image_slide.dart';
 import 'widgets/media_slide.dart';
 import 'widgets/shortcuts_help_dialog.dart';
 import 'widgets/video_controls_overlay.dart';
@@ -24,11 +27,13 @@ class SlideshowPage extends StatefulWidget {
     required this.repository,
     required this.source,
     required this.server,
+    required this.settings,
   });
 
   final KemonoRepository repository;
   final SlideshowSource source;
   final KemonoServer server;
+  final AppSettings settings;
 
   @override
   State<SlideshowPage> createState() => _SlideshowPageState();
@@ -44,6 +49,8 @@ class _SlideshowPageState extends State<SlideshowPage> {
   String? _currentVideoUrl;
   String? _lastPlayerError;
   int? _pendingIndex;
+  final Set<ImageProvider> _preloadedImages = {};
+  bool _preloadScheduled = false;
 
   @override
   void initState() {
@@ -52,6 +59,7 @@ class _SlideshowPageState extends State<SlideshowPage> {
       widget.repository,
       source: widget.source,
       server: widget.server,
+      includeLinkedMedia: widget.settings.scanPostContent,
     );
     _player = Player(configuration: PlayerConfiguration(title: 'KemoShow'));
     _videoController = VideoController(_player);
@@ -99,6 +107,52 @@ class _SlideshowPageState extends State<SlideshowPage> {
       } else if (!_viewModel.hasMore || _viewModel.error != null) {
         _pendingIndex = null;
       }
+    }
+
+    _schedulePreload();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Preloading
+  // ---------------------------------------------------------------------------
+
+  /// Schedules preloading of the next images after the current frame.
+  void _schedulePreload() {
+    if (_preloadScheduled || widget.settings.preloadCount <= 0) return;
+    _preloadScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _preloadScheduled = false;
+      if (mounted) _preloadAhead();
+    });
+  }
+
+  /// Warms the image cache for the next few slides.
+  ///
+  /// Images are decoded at display size (see [mediaImageProvider]), so keeping
+  /// a handful of them around stays within Flutter's default image cache
+  /// budget. Videos cannot be preloaded this way and are opened when reached.
+  void _preloadAhead() {
+    final items = _viewModel.items;
+    final current = _viewModel.currentIndex;
+    final count = widget.settings.preloadCount;
+    final end = current + 1 + count <= items.length
+        ? current + 1 + count
+        : items.length;
+
+    for (var index = current + 1; index < end; index++) {
+      final item = items[index];
+      if (item.isVideo) continue;
+
+      final provider = mediaImageProvider(context, item.url);
+      if (!_preloadedImages.add(provider)) continue;
+
+      unawaited(
+        precacheImage(
+          provider,
+          context,
+          onError: (error, stackTrace) => _preloadedImages.remove(provider),
+        ),
+      );
     }
   }
 
@@ -430,16 +484,18 @@ class _SlideshowPageState extends State<SlideshowPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    tooltip: 'Keyboard shortcuts (?)',
-                    onPressed: () => unawaited(showShortcutsHelp(context)),
-                    icon: const Icon(
-                      Icons.keyboard_outlined,
-                      color: Colors.white70,
-                      size: 20,
+                  if (isDesktopPlatform) ...[
+                    const SizedBox(width: 4),
+                    IconButton(
+                      tooltip: 'Keyboard shortcuts (?)',
+                      onPressed: () => unawaited(showShortcutsHelp(context)),
+                      icon: const Icon(
+                        Icons.keyboard_outlined,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

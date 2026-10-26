@@ -4,15 +4,22 @@ import '../../../../core/kemono_server.dart';
 import '../../../../data/models/creator.dart';
 import '../../../../data/repositories/kemono_repository.dart';
 import '../../../../domain/models/slideshow_source.dart';
+import '../../settings/view_models/settings_controller.dart';
+import '../../settings/views/settings_dialog.dart';
 import '../../slideshow/views/slideshow_page.dart';
 import '../view_models/search_view_model.dart';
 
 /// Landing screen: pick a server, switch between post and author search, then
 /// open the slideshow.
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key, required this.repository});
+  const SearchPage({
+    super.key,
+    required this.repository,
+    required this.settingsController,
+  });
 
   final KemonoRepository repository;
+  final SettingsController settingsController;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -45,6 +52,7 @@ class _SearchPageState extends State<SearchPage> {
           repository: widget.repository,
           source: source,
           server: _viewModel.selectedServer,
+          settings: widget.settingsController.settings,
         ),
       ),
     );
@@ -90,6 +98,10 @@ class _SearchPageState extends State<SearchPage> {
                       _Header(
                         selectedServer: _viewModel.selectedServer,
                         onServerChanged: _selectServer,
+                        onOpenSettings: () => showSettingsDialog(
+                          context,
+                          widget.settingsController,
+                        ),
                       ),
                       const SizedBox(height: 28),
                       _buildModeSwitch(),
@@ -332,10 +344,15 @@ class _SearchPageState extends State<SearchPage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.selectedServer, required this.onServerChanged});
+  const _Header({
+    required this.selectedServer,
+    required this.onServerChanged,
+    required this.onOpenSettings,
+  });
 
   final KemonoServer selectedServer;
   final ValueChanged<KemonoServer?> onServerChanged;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -374,6 +391,11 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
+        ),
+        IconButton(
+          tooltip: 'Settings',
+          onPressed: onOpenSettings,
+          icon: const Icon(Icons.settings_outlined),
         ),
       ],
     );

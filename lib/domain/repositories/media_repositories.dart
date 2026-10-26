@@ -22,10 +22,15 @@ class MediaPage {
 
 /// Feeds the slideshow.
 abstract interface class SlideshowRepository {
+  /// Fetches one page of flattened media.
+  ///
+  /// [includeLinkedMedia] additionally includes media files linked from post
+  /// bodies, not just the posts' own files and attachments.
   Future<MediaPage> fetchMediaPage({
     required KemonoServer server,
     required SlideshowSource source,
     required int offset,
+    required bool includeLinkedMedia,
   });
 }
 

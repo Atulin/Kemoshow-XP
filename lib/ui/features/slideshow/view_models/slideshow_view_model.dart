@@ -15,6 +15,7 @@ class SlideshowViewModel extends ChangeNotifier {
     this._repository, {
     required this.source,
     required this.server,
+    this.includeLinkedMedia = false,
   });
 
   /// How many media items before the end trigger a fetch of the next page.
@@ -23,6 +24,9 @@ class SlideshowViewModel extends ChangeNotifier {
   final SlideshowRepository _repository;
   final SlideshowSource source;
   final KemonoServer server;
+
+  /// Whether media files linked from post bodies are part of the slideshow.
+  final bool includeLinkedMedia;
 
   final List<MediaItem> _items = [];
   final Set<String> _seenUrls = {};
@@ -83,6 +87,7 @@ class SlideshowViewModel extends ChangeNotifier {
         server: server,
         source: source,
         offset: _nextOffset,
+        includeLinkedMedia: includeLinkedMedia,
       );
       if (_disposed) return;
 

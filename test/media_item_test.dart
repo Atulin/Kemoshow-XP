@@ -101,4 +101,91 @@ void main() {
       }
     });
   });
+
+  group('MediaItem.mediaUrlsInHtml', () {
+    test('extracts normalized, deduplicated media links', () {
+      const html =
+          '<p><a href="https://files.catbox.moe/m9z6gw.mp4">clip</a></p>'
+          '<img src="https://n2.pawchive.pw/data/ab/pic.PNG?token=1&amp;size=2"/>'
+          '<p>again https://files.catbox.moe/m9z6gw.mp4.</p>'
+          '<a href="https://example.com/page">not media</a>'
+          '<a href="https://example.com/file.zip">archive</a>'
+          '<a href="/data/xx/local.mp4">relative</a>';
+
+      expect(MediaItem.mediaUrlsInHtml(html), [
+        'https://files.catbox.moe/m9z6gw.mp4',
+        'https://n2.pawchive.pw/data/ab/pic.PNG?token=1&size=2',
+      ]);
+    });
+
+    test('handles protocol-relative links and empty bodies', () {
+      expect(MediaItem.mediaUrlsInHtml('//cdn.example.org/a/b.webp'), [
+        'https://cdn.example.org/a/b.webp',
+      ]);
+      expect(MediaItem.mediaUrlsInHtml(null), isEmpty);
+      expect(MediaItem.mediaUrlsInHtml(''), isEmpty);
+      expect(MediaItem.mediaUrlsInHtml('<p>just text</p>'), isEmpty);
+    });
+
+    test('requires a known media extension', () {
+      expect(MediaItem.isMediaUrl('https://example.com/a/b.MP4'), isTrue);
+      expect(MediaItem.isMediaUrl('https://example.com/a/b.mp4/page'), isFalse);
+      expect(MediaItem.isMediaUrl('https://example.com/file.zip'), isFalse);
+      expect(MediaItem.isMediaUrl('https://example.com/'), isFalse);
+      expect(MediaItem.isMediaUrl('/data/local.mp4'), isFalse);
+    });
+  });
+
+  group('MediaItem.flattenPosts with linked media', () {
+    const post = Post(
+      id: '7',
+      service: 'patreon',
+      file: PostFile(path: '/ff/cover.jpg'),
+      attachments: [PostFile(path: '/gg/extra.png')],
+      content:
+          '<p><img src="https://cdn.example.org/a/b.webp"/></p>'
+          '<p><a href="https://files.catbox.moe/m9z6gw.mp4">clip</a></p>'
+          '<p>duplicate https://n2.pawchive.pw/data/gg/extra.png</p>',
+    );
+
+    test('adds direct body links after files and attachments', () {
+      final items = MediaItem.flattenPosts(
+        [post],
+        mediaBase: 'https://n2.pawchive.pw/data',
+        includeLinkedMedia: true,
+      );
+
+      expect(items.map((item) => item.url), [
+        'https://n2.pawchive.pw/data/ff/cover.jpg',
+        'https://n2.pawchive.pw/data/gg/extra.png',
+        'https://cdn.example.org/a/b.webp',
+        'https://files.catbox.moe/m9z6gw.mp4',
+      ]);
+      expect(items.map((item) => item.kind), [
+        MediaKind.image,
+        MediaKind.image,
+        MediaKind.image,
+        MediaKind.video,
+      ]);
+      expect(items.map((item) => item.name), [
+        'cover.jpg',
+        'extra.png',
+        'b.webp',
+        'm9z6gw.mp4',
+      ]);
+      expect(items.every((item) => item.post.id == '7'), isTrue);
+    });
+
+    test('ignores post bodies unless scanning is enabled', () {
+      final items = MediaItem.flattenPosts([
+        post,
+      ], mediaBase: 'https://n2.pawchive.pw/data');
+
+      expect(items, hasLength(2));
+      expect(
+        items.map((item) => item.url),
+        everyElement(contains('pawchive.pw/data')),
+      );
+    });
+  });
 }

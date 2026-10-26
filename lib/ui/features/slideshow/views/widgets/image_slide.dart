@@ -1,6 +1,21 @@
 import 'package:flutter/material.dart';
 
-/// A zoom-free, contained network image with loading and error states.
+/// Image provider for a slideshow image.
+///
+/// Images are decoded at roughly their on-screen size instead of their full
+/// resolution, which keeps memory usage low enough to preload several of them.
+/// The preloader uses the same provider so the decoded image is shared through
+/// Flutter's image cache.
+ImageProvider mediaImageProvider(BuildContext context, String url) {
+  final media = MediaQuery.maybeOf(context);
+  var width = media == null
+      ? 1024
+      : (media.size.width * media.devicePixelRatio).round();
+  if (width <= 0) width = 1024;
+  return ResizeImage(NetworkImage(url), width: width);
+}
+
+/// A single image of the slideshow, with loading and error states.
 class ImageSlide extends StatefulWidget {
   const ImageSlide({super.key, required this.url, required this.name});
 
@@ -14,17 +29,26 @@ class ImageSlide extends StatefulWidget {
 class _ImageSlideState extends State<ImageSlide> {
   int _attempt = 0;
 
+  void _retry() {
+    PaintingBinding.instance.imageCache.evict(
+      mediaImageProvider(context, widget.url),
+    );
+    setState(() => _attempt++);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final provider = mediaImageProvider(context, widget.url);
+
     return Semantics(
       image: true,
       label: widget.name,
       child: ColoredBox(
         color: Colors.black,
         child: Center(
-          child: Image.network(
-            widget.url,
+          child: Image(
+            image: provider,
             key: ValueKey(_attempt),
             fit: BoxFit.contain,
             gaplessPlayback: false,
@@ -68,7 +92,7 @@ class _ImageSlideState extends State<ImageSlide> {
                     ),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
-                      onPressed: () => setState(() => _attempt++),
+                      onPressed: _retry,
                       icon: const Icon(Icons.refresh),
                       label: const Text('Retry'),
                     ),

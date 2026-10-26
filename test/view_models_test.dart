@@ -30,14 +30,17 @@ class _FakeSlideshowRepository implements SlideshowRepository {
 
   final Future<MediaPage> Function(int offset) _page;
   final List<int> requestedOffsets = [];
+  final List<bool> linkedMediaFlags = [];
 
   @override
   Future<MediaPage> fetchMediaPage({
     required KemonoServer server,
     required SlideshowSource source,
     required int offset,
+    required bool includeLinkedMedia,
   }) {
     requestedOffsets.add(offset);
+    linkedMediaFlags.add(includeLinkedMedia);
     return _page(offset);
   }
 }
@@ -86,6 +89,24 @@ void main() {
         expect(repository.requestedOffsets, [0]);
       },
     );
+
+    test('forwards the linked-media setting to the repository', () async {
+      final repository = _FakeSlideshowRepository(
+        (offset) async => _page(offset, 10, hasMore: false),
+      );
+      final viewModel = SlideshowViewModel(
+        repository,
+        source: const PostSearchSource('cat'),
+        server: KemonoServer.pawchive,
+        includeLinkedMedia: true,
+      );
+      addTearDown(viewModel.dispose);
+
+      await viewModel.loadInitial();
+      await pumpEventQueue();
+
+      expect(repository.linkedMediaFlags, [true]);
+    });
 
     test('fetches the next page when only 5 items remain', () async {
       final repository = _FakeSlideshowRepository(

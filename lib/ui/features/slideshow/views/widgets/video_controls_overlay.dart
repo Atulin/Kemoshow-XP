@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 
 import '../../../../core/duration_label.dart';
+import '../../../../core/platform_support.dart';
 import 'shortcuts_help_dialog.dart';
 
 /// Custom video controls drawn over the shared video output.
@@ -229,18 +230,19 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
                     );
                   },
                 ),
-                IconButton(
-                  tooltip: 'Keyboard shortcuts (?)',
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => const ShortcutsHintDialog(),
+                if (isDesktopPlatform)
+                  IconButton(
+                    tooltip: 'Keyboard shortcuts (?)',
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (_) => const ShortcutsHintDialog(),
+                    ),
+                    icon: Icon(
+                      Icons.keyboard_outlined,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
                   ),
-                  icon: Icon(
-                    Icons.keyboard_outlined,
-                    color: theme.colorScheme.onSurfaceVariant,
-                    size: 20,
-                  ),
-                ),
               ],
             ),
           ),

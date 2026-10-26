@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'data/repositories/kemono_repository.dart';
 import 'data/services/kemono_api_service.dart';
+import 'data/services/settings_store.dart';
 import 'ui/features/search/views/search_page.dart';
+import 'ui/features/settings/view_models/settings_controller.dart';
 
 class KemoShowApp extends StatefulWidget {
   const KemoShowApp({super.key});
@@ -13,15 +17,19 @@ class KemoShowApp extends StatefulWidget {
 
 class _KemoShowAppState extends State<KemoShowApp> {
   late final KemonoRepository _repository;
+  late final SettingsController _settings;
 
   @override
   void initState() {
     super.initState();
     _repository = KemonoRepository(KemonoApiService());
+    _settings = SettingsController(SharedPreferencesSettingsStore());
+    unawaited(_settings.load());
   }
 
   @override
   void dispose() {
+    _settings.dispose();
     _repository.dispose();
     super.dispose();
   }
@@ -57,7 +65,7 @@ class _KemoShowAppState extends State<KemoShowApp> {
           ),
         ),
       ),
-      home: SearchPage(repository: _repository),
+      home: SearchPage(repository: _repository, settingsController: _settings),
     );
   }
 }

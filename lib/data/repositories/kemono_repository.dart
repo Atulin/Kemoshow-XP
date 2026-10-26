@@ -52,6 +52,7 @@ class KemonoRepository implements SlideshowRepository, CreatorDirectory {
     required KemonoServer server,
     required SlideshowSource source,
     required int offset,
+    required bool includeLinkedMedia,
   }) async {
     final items = <MediaItem>[];
     var nextOffset = offset;
@@ -77,7 +78,13 @@ class KemonoRepository implements SlideshowRepository, CreatorDirectory {
       }
 
       pagesFetched++;
-      items.addAll(MediaItem.flattenPosts(posts, mediaBase: server.mediaBase));
+      items.addAll(
+        MediaItem.flattenPosts(
+          posts,
+          mediaBase: server.mediaBase,
+          includeLinkedMedia: includeLinkedMedia,
+        ),
+      );
       hasMore = posts.length >= KemonoApiService.pageSize;
       nextOffset += posts.length;
 

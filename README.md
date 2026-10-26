@@ -17,9 +17,19 @@ endless slideshow — no pagination, no clicking through individual posts.
   media items are left.
 - **Mobile**: swipe horizontally between media.
 - **Desktop**: full keyboard navigation, including video seeking that does not
-  interfere with slide navigation.
+  interfere with slide navigation. The shortcut reference is only shown on
+  desktop builds.
 - **Video**: custom controls, a thin always-visible progress bar at the top of
   the screen, mute and seek support.
+- **Settings** (gear icon on the search screen), persisted between runs:
+  - **Scan post descriptions for media** — adds links in a post's body that
+    point directly at an image or video (`.png`, `.jpg`, `.gif`, `.mp4`, `.webm`,
+    …) to the slideshow. Attachments are always included. Post search results
+    usually omit post bodies, so this mainly affects author slideshows.
+  - **Preload ahead (0–10)** — loads upcoming images in the background so
+    swiping feels instant. Images are decoded at screen size, so a handful can
+    be cached without exhausting memory. `0` disables preloading; videos are
+    always opened when they become visible.
 
 ## Keyboard shortcuts
 
@@ -77,15 +87,20 @@ lib/
 ├── data/
 │   ├── models/            # API models (dart_mappable)
 │   ├── repositories/      # Caching and pagination
-│   └── services/          # Kemono HTTP API client
+│   └── services/          # Kemono HTTP API client, settings storage
 ├── domain/
-│   ├── models/            # Media items, slideshow sources
+│   ├── models/            # Media items, slideshow sources, app settings
 │   └── repositories/      # Repository interfaces
 └── ui/
-    ├── core/              # Shared formatting helpers
+    ├── core/              # Shared formatting helpers, platform detection
     └── features/
         ├── search/        # Search screen (views + view models)
+        ├── settings/      # Settings dialog, controller, persistence
         └── slideshow/     # Slideshow screen (views + view models)
 ```
+
+Settings are stored with
+[`shared_preferences`](https://pub.dev/packages/shared_preferences) behind a
+small `SettingsStore` interface, so tests can swap in an in-memory store.
 
 The API specification is available in [openapi.json](openapi.json).
