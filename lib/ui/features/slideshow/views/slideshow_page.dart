@@ -9,9 +9,11 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../../../core/kemono_server.dart';
 import '../../../../data/repositories/kemono_repository.dart';
+import '../../../../data/services/platform_media_saver.dart';
 import '../../../../domain/models/app_settings.dart';
 import '../../../../domain/models/media_item.dart';
 import '../../../../domain/models/slideshow_source.dart';
+import '../../../../domain/services/media_saver.dart';
 import '../../../core/platform_support.dart';
 import '../view_models/slideshow_view_model.dart';
 import 'widgets/image_slide.dart';
@@ -28,12 +30,17 @@ class SlideshowPage extends StatefulWidget {
     required this.source,
     required this.server,
     required this.settings,
+    this.mediaSaver,
   });
 
   final KemonoRepository repository;
   final SlideshowSource source;
   final KemonoServer server;
   final AppSettings settings;
+
+  /// Overrides how media is saved. Defaults to the platform behaviour:
+  /// gallery on mobile, a chosen folder on desktop.
+  final MediaSaver? mediaSaver;
 
   @override
   State<SlideshowPage> createState() => _SlideshowPageState();
@@ -45,12 +52,16 @@ class _SlideshowPageState extends State<SlideshowPage> {
   late final VideoController _videoController;
   late final PageController _pageController;
   late final StreamSubscription<String> _playerErrorSubscription;
+  late final MediaSaver _mediaSaver;
 
   String? _currentVideoUrl;
   String? _lastPlayerError;
   int? _pendingIndex;
   final Set<ImageProvider> _preloadedImages = {};
   bool _preloadScheduled = false;
+  bool _isSaving = false;
+  bool _isChoosingSaveTarget = false;
+  final ValueNotifier<MediaSaveProgress?> _saveProgress = ValueNotifier(null);
 
   @override
   void initState() {
@@ -64,6 +75,7 @@ class _SlideshowPageState extends State<SlideshowPage> {
     _player = Player(configuration: PlayerConfiguration(title: 'KemoShow'));
     _videoController = VideoController(_player);
     _pageController = PageController();
+    _mediaSaver = widget.mediaSaver ?? PlatformMediaSaver();
     _viewModel.addListener(_handleViewModelChanged);
     _playerErrorSubscription = _player.stream.error.listen(_onPlayerError);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
@@ -78,6 +90,7 @@ class _SlideshowPageState extends State<SlideshowPage> {
     _playerErrorSubscription.cancel();
     unawaited(_player.dispose());
     _pageController.dispose();
+    _saveProgress.dispose();
     super.dispose();
   }
 
@@ -159,15 +172,111 @@ class _SlideshowPageState extends State<SlideshowPage> {
   void _onPlayerError(String message) {
     if (!mounted || message.isEmpty || message == _lastPlayerError) return;
     _lastPlayerError = message;
+    _showMessage('Playback error: $message');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Saving media
+  // ---------------------------------------------------------------------------
+
+  /// Downloads the current media to the gallery or a folder.
+  ///
+  /// Mobile users choose the destination in a sheet; on desktop the folder
+  /// picker opens directly, since there is no gallery target.
+  Future<void> _saveCurrent() async {
+    if (_isSaving || _isChoosingSaveTarget) return;
+    final item = _viewModel.current;
+    if (item == null) return;
+
+    MediaSaveTarget? target = MediaSaveTarget.folder;
+    if (_mediaSaver.supportsGallery) {
+      _isChoosingSaveTarget = true;
+      try {
+        target = await _chooseSaveTarget(item);
+      } finally {
+        _isChoosingSaveTarget = false;
+      }
+    }
+    if (target == null || !mounted) return;
+
+    setState(() => _isSaving = true);
+    _saveProgress.value = const MediaSaveProgress(receivedBytes: 0);
+    try {
+      final result = await _mediaSaver.save(
+        item,
+        target: target,
+        onProgress: (progress) {
+          if (mounted) _saveProgress.value = progress;
+        },
+      );
+      if (!mounted || result == null) return;
+      _showMessage('Saved ${item.name} to ${result.destination}.');
+    } on MediaSaveException catch (error) {
+      if (mounted) _showMessage('Could not save media: ${error.message}');
+    } catch (error) {
+      if (mounted) _showMessage('Could not save media: $error');
+    } finally {
+      if (mounted) {
+        _saveProgress.value = null;
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  /// Asks where a mobile download should go. Returns null when dismissed.
+  Future<MediaSaveTarget?> _chooseSaveTarget(MediaItem item) {
+    return showModalBottomSheet<MediaSaveTarget>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Save media', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Save to gallery'),
+                subtitle: const Text('Add it to your photos'),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(MediaSaveTarget.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_outlined),
+                title: const Text('Save to a folder'),
+                subtitle: const Text('Pick a destination'),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(MediaSaveTarget.folder),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(
-            'Playback error: $message',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
+          content: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -250,6 +359,11 @@ class _SlideshowPageState extends State<SlideshowPage> {
 
     if (key == LogicalKeyboardKey.escape) {
       unawaited(Navigator.of(context).maybePop());
+      return true;
+    }
+    if (key == LogicalKeyboardKey.keyS &&
+        (hardware.isControlPressed || hardware.isMetaPressed)) {
+      unawaited(_saveCurrent());
       return true;
     }
     if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.keyA) {
@@ -484,6 +598,8 @@ class _SlideshowPageState extends State<SlideshowPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 4),
+                  _buildSaveButton(),
                   if (isDesktopPlatform) ...[
                     const SizedBox(width: 4),
                     IconButton(
@@ -502,6 +618,37 @@ class _SlideshowPageState extends State<SlideshowPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    final tooltip = _mediaSaver.supportsGallery
+        ? 'Save media'
+        : 'Save to a folder (Ctrl+S)';
+    return ValueListenableBuilder<MediaSaveProgress?>(
+      valueListenable: _saveProgress,
+      builder: (context, progress, _) {
+        final saving = progress != null;
+        return IconButton(
+          tooltip: saving ? 'Saving…' : tooltip,
+          onPressed: saving ? null : () => unawaited(_saveCurrent()),
+          icon: saving
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    value: progress.fraction,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(
+                  Icons.download_outlined,
+                  color: Colors.white70,
+                  size: 20,
+                ),
+        );
+      },
     );
   }
 

@@ -19,6 +19,7 @@ class ShortcutsHintDialog extends StatelessWidget {
     ('J / L', 'Seek 10 seconds'),
     ('Shift + ← / →', 'Seek 30 seconds'),
     ('M', 'Mute / unmute'),
+    ('Ctrl / ⌘ + S', 'Save current media'),
     ('Home / End', 'First / last loaded media'),
     ('H  ·  ?', 'Show this help'),
     ('Esc', 'Back to search'),

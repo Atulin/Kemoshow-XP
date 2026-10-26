@@ -21,6 +21,10 @@ endless slideshow — no pagination, no clicking through individual posts.
   desktop builds.
 - **Video**: custom controls, a thin always-visible progress bar at the top of
   the screen, mute and seek support.
+- **Save media**: download the current image or video. On mobile, choose between
+  adding it to the system gallery or saving it to a folder in the system save
+  dialog; on desktop the app asks for a destination folder. The header button
+  shows download progress.
 - **Settings** (gear icon on the search screen), persisted between runs:
   - **Scan post descriptions for media** — adds links in a post's body that
     point directly at an image or video (`.png`, `.jpg`, `.gif`, `.mp4`, `.webm`,
@@ -41,6 +45,7 @@ endless slideshow — no pagination, no clicking through individual posts.
 | `J` / `L` | Seek 10 seconds |
 | `Shift` + `←` / `→` | Seek 30 seconds |
 | `M` | Mute / unmute |
+| `Ctrl` / `⌘` + `S` | Save the current media |
 | `Home` / `End` | First / last loaded media |
 | `H`, `?` | Show the shortcut reference |
 | `Esc` | Back to search |
@@ -87,10 +92,11 @@ lib/
 ├── data/
 │   ├── models/            # API models (dart_mappable)
 │   ├── repositories/      # Caching and pagination
-│   └── services/          # Kemono HTTP API client, settings storage
+│   └── services/          # Kemono API client, settings storage, downloads
 ├── domain/
 │   ├── models/            # Media items, slideshow sources, app settings
-│   └── repositories/      # Repository interfaces
+│   ├── repositories/      # Repository interfaces
+│   └── services/          # Media saving interface
 └── ui/
     ├── core/              # Shared formatting helpers, platform detection
     └── features/
