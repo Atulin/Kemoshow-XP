@@ -86,6 +86,29 @@ void main() {
 
       expect(items, isEmpty);
     });
+
+    test('skips archives and other non-media files', () {
+      const post = Post(
+        id: '8',
+        file: PostFile(name: 'bundle.ZIP', path: '/aa/bundle.ZIP'),
+        attachments: [
+          PostFile(name: 'notes.pdf', path: '/bb/notes.pdf'),
+          PostFile(name: 'track.mp3', path: '/cc/track.mp3'),
+          PostFile(name: 'clip.mp4', path: '/dd/clip.mp4'),
+          PostFile(name: 'no-extension', path: '/ee/no-extension'),
+        ],
+      );
+
+      final items = MediaItem.flattenPosts([
+        post,
+      ], mediaBase: 'https://n2.pawchive.pw/data');
+
+      expect(items.map((item) => item.url), [
+        'https://n2.pawchive.pw/data/dd/clip.mp4',
+        'https://n2.pawchive.pw/data/ee/no-extension',
+      ]);
+      expect(items.map((item) => item.name), ['clip.mp4', 'no-extension']);
+    });
   });
 
   group('MediaItem.kindFromName', () {

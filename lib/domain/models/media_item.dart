@@ -31,7 +31,7 @@ class MediaItem {
   bool get isVideo => kind == MediaKind.video;
 
   /// Flattens [posts] into a linear list of media items, skipping files
-  /// without a usable path.
+  /// without a usable path and files that cannot be shown, such as archives.
   ///
   /// When [includeLinkedMedia] is set, links to media files found in the post
   /// body (for example `https://files.example/movie.mp4`) are added after the
@@ -78,6 +78,7 @@ class MediaItem {
         : mediaBase;
     final normalized = path.startsWith('/') ? path : '/$path';
     final name = file.fileName ?? normalized.split('/').last;
+    if (_isNonMediaFile(name)) return null;
     return MediaItem(
       url: '$base$normalized',
       name: name,
@@ -136,6 +137,62 @@ class MediaItem {
   };
 
   static const _mediaExtensions = {..._imageExtensions, ..._videoExtensions};
+
+  /// Extensions that are known not to be renderable by the slideshow.
+  ///
+  /// Archives, documents, audio files and similar attachments are common in
+  /// post files; they would only ever show the broken-image state.
+  static const _nonMediaExtensions = {
+    // Archives
+    'zip',
+    'rar',
+    '7z',
+    'tar',
+    'gz',
+    'tgz',
+    'bz2',
+    'tbz2',
+    'xz',
+    'txz',
+    'zst',
+    'lz',
+    'lzma',
+    'iso',
+    'cab',
+    'arj',
+    // Documents and data
+    'pdf',
+    'txt',
+    'rtf',
+    'doc',
+    'docx',
+    'odt',
+    'xls',
+    'xlsx',
+    'csv',
+    'ppt',
+    'pptx',
+    'epub',
+    // Audio
+    'mp3',
+    'wav',
+    'flac',
+    'ogg',
+    'oga',
+    'opus',
+    'm4a',
+    'aac',
+    'wma',
+    'aiff',
+    // Other binaries that are not images or videos
+    'psd',
+    'clip',
+    'sai',
+    'exe',
+    'apk',
+    'dmg',
+    'torrent',
+  };
 
   static final RegExp _urlPattern = RegExp(
     r'''(?:https?:)?//[^\s"'<>`]+''',
@@ -199,6 +256,11 @@ class MediaItem {
     if (segments.isEmpty) return false;
     final extension = _extensionOf(segments.last);
     return extension != null && _mediaExtensions.contains(extension);
+  }
+
+  static bool _isNonMediaFile(String name) {
+    final extension = _extensionOf(name);
+    return extension != null && _nonMediaExtensions.contains(extension);
   }
 
   static String? _extensionOf(String name) {
