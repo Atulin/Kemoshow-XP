@@ -15,9 +15,16 @@ import 'video_overlay_surface.dart';
 /// controls are disabled and replaced with this overlay. Tapping toggles the
 /// controls; they hide themselves while the video is playing.
 class VideoControlsOverlay extends StatefulWidget {
-  const VideoControlsOverlay({super.key, required this.player});
+  const VideoControlsOverlay({
+    super.key,
+    required this.player,
+    this.onToggleHeader,
+  });
 
   final Player player;
+
+  /// Called when the video is tapped, e.g. to toggle the slideshow header.
+  final VoidCallback? onToggleHeader;
 
   @override
   State<VideoControlsOverlay> createState() => _VideoControlsOverlayState();
@@ -110,6 +117,7 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
   }
 
   void _toggle() {
+    widget.onToggleHeader?.call();
     if (_visible) {
       _hideTimer?.cancel();
       setState(() => _visible = false);

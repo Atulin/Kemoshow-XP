@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -66,6 +65,7 @@ class _SlideshowPageState extends State<SlideshowPage> {
   bool _preloadScheduled = false;
   bool _isSaving = false;
   bool _isChoosingSaveTarget = false;
+  bool _headerVisible = true;
   final ValueNotifier<MediaSaveProgress?> _saveProgress = ValueNotifier(null);
 
   @override
@@ -339,6 +339,11 @@ class _SlideshowPageState extends State<SlideshowPage> {
     await _player.setVolume(_player.state.volume > 0 ? 0 : 100);
   }
 
+  /// Hides or reveals the header so it does not cover landscape media.
+  void _toggleHeader() {
+    setState(() => _headerVisible = !_headerVisible);
+  }
+
   // ---------------------------------------------------------------------------
   // Keyboard handling
   // ---------------------------------------------------------------------------
@@ -412,6 +417,10 @@ class _SlideshowPageState extends State<SlideshowPage> {
       _goTo(_viewModel.items.length - 1);
       return true;
     }
+    if (key == LogicalKeyboardKey.tab) {
+      _toggleHeader();
+      return true;
+    }
     if (key == LogicalKeyboardKey.keyH || event.character == '?') {
       unawaited(showShortcutsHelp(context));
       return true;
@@ -457,6 +466,7 @@ class _SlideshowPageState extends State<SlideshowPage> {
                   child: VideoControlsOverlay(
                     key: ValueKey(_currentVideoUrl),
                     player: _player,
+                    onToggleHeader: _toggleHeader,
                   ),
                 ),
               if (current != null) _buildHeader(context, current, items.length),
@@ -511,6 +521,7 @@ class _SlideshowPageState extends State<SlideshowPage> {
             item: item,
             isActive: index == _viewModel.currentIndex,
             videoController: _videoController,
+            onToggleHeader: _toggleHeader,
           );
         },
       ),
@@ -538,103 +549,112 @@ class _SlideshowPageState extends State<SlideshowPage> {
       top: 0,
       left: 0,
       right: 0,
-      child: Stack(
-        children: [
-          IgnorePointer(
-            child: Container(
-              height: 140,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black87, Colors.transparent],
+      child: IgnorePointer(
+        ignoring: !_headerVisible,
+        child: AnimatedSlide(
+          offset: _headerVisible ? Offset.zero : const Offset(0, -1),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: Stack(
+            children: [
+              IgnorePointer(
+                child: Container(
+                  height: 140,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.black87, Colors.transparent],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Back (Esc)',
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: IgnorePointer(
-                      // The title is not interactive; letting it absorb
-                      // pointers would create a dead zone for page swipes.
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (subtitle.isNotEmpty)
-                            Text(
-                              subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.white70,
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: 'Back (Esc)',
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: IgnorePointer(
+                          // The title is not interactive; letting it absorb
+                          // pointers would create a dead zone for page swipes.
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  IgnorePointer(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        counter,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: Colors.white,
+                              if (subtitle.isNotEmpty)
+                                Text(
+                                  subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  if (widget.favouritesController != null) ...[
-                    _buildFavouriteButton(_currentFavourite),
-                    const SizedBox(width: 4),
-                  ],
-                  _buildSaveButton(),
-                  if (isDesktopPlatform) ...[
-                    const SizedBox(width: 4),
-                    IconButton(
-                      tooltip: 'Keyboard shortcuts (?)',
-                      onPressed: () => unawaited(showShortcutsHelp(context)),
-                      icon: const Icon(
-                        Icons.keyboard_outlined,
-                        color: Colors.white70,
-                        size: 20,
+                      const SizedBox(width: 12),
+                      IgnorePointer(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            counter,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ],
+                      const SizedBox(width: 4),
+                      if (widget.favouritesController != null) ...[
+                        _buildFavouriteButton(_currentFavourite),
+                        const SizedBox(width: 4),
+                      ],
+                      _buildSaveButton(),
+                      if (isDesktopPlatform) ...[
+                        const SizedBox(width: 4),
+                        IconButton(
+                          tooltip: 'Keyboard shortcuts (?)',
+                          onPressed: () =>
+                              unawaited(showShortcutsHelp(context)),
+                          icon: const Icon(
+                            Icons.keyboard_outlined,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

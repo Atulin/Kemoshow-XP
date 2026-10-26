@@ -15,16 +15,20 @@ class MediaSlide extends StatelessWidget {
     required this.item,
     required this.isActive,
     required this.videoController,
+    required this.onToggleHeader,
   });
 
   final MediaItem item;
   final bool isActive;
   final VideoController videoController;
 
+  /// Called when the media is tapped, e.g. to hide the slideshow header.
+  final VoidCallback onToggleHeader;
+
   @override
   Widget build(BuildContext context) {
     if (!item.isVideo) {
-      return ImageSlide(url: item.url, name: item.name);
+      return ImageSlide(url: item.url, name: item.name, onTap: onToggleHeader);
     }
 
     if (!isActive) {
