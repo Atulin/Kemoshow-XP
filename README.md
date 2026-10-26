@@ -1,5 +1,7 @@
 # KemoShow
 
+![Kemoshow logo](/assets/icon/icon-transparent.png)
+
 A cross-platform slideshow viewer for Kemono-type websites
 ([pawchive.pw](https://pawchive.pw), [kemono.cr](https://kemono.cr), and
 [coomer.su](https://coomer.su)).
@@ -12,6 +14,11 @@ endless slideshow — no pagination, no clicking through individual posts.
 - **Post search and author search**, with author autocomplete backed by the
   server-wide creator directory (fetched in the background and cached for the
   runtime of the app).
+- **Favourites**: star a post search from the search field or an author from the
+  result list, then reopen either from the star button in the header. Each
+  favourite remembers its server, so opening one switches servers automatically.
+  The slideshow header shows the same star toggle for the search or author being
+  viewed.
 - **Flattened slideshow** of all primary files and attachments of all posts.
 - **Infinite scrolling**: the next page of posts is requested when only five
   media items are left.
@@ -149,21 +156,24 @@ lib/
 ├── data/
 │   ├── models/            # API models (dart_mappable)
 │   ├── repositories/      # Caching and pagination
-│   └── services/          # Kemono API client, settings storage, downloads
+│   └── services/          # API client, settings/favourites storage, downloads
 ├── domain/
-│   ├── models/            # Media items, slideshow sources, app settings
+│   ├── models/            # Media, sources, favourites, settings
 │   ├── repositories/      # Repository interfaces
 │   └── services/          # Media saving interface
 └── ui/
     ├── core/              # Shared formatting helpers, platform detection
     └── features/
+        ├── favourites/    # Starred post searches/authors (controller + sheet)
         ├── search/        # Search screen (views + view models)
         ├── settings/      # Settings dialog, controller, persistence
         └── slideshow/     # Slideshow screen (views + view models)
 ```
 
-Settings are stored with
-[`shared_preferences`](https://pub.dev/packages/shared_preferences) behind a
-small `SettingsStore` interface, so tests can swap in an in-memory store.
+Settings and favourites are stored with
+[`shared_preferences`](https://pub.dev/packages/shared_preferences) behind
+small `SettingsStore`/`FavouritesStore` interfaces, so tests can swap in
+in-memory stores. Favourites are serialized as a versioned JSON list under
+`favourites.v1`; unknown or malformed entries are skipped on load.
 
 The API specification is available in [openapi.json](openapi.json).

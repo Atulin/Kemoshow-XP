@@ -9,11 +9,11 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag, e.g. v0.1.0 (created from the selected ref if missing)'
+        description: "Release tag, e.g. v0.1.0 (created from the selected ref if missing)"
         required: true
 
 permissions:
@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  FLUTTER_VERSION: '3.47.8'
+  FLUTTER_VERSION: "3.47.8"
   RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
 
 jobs:
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
           cache: gradle
 
       - uses: subosito/flutter-action@v2
@@ -94,7 +94,7 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           set -euo pipefail
@@ -136,7 +136,7 @@ jobs:
 
       - name: Build universal APK
         env:
-          REQUIRE_RELEASE_SIGNING: 'true'
+          REQUIRE_RELEASE_SIGNING: "true"
         run: flutter build apk --release --build-number "${{ github.run_number }}"
 
       - name: Verify APK signing certificate

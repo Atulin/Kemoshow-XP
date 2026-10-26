@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/kemono_server.dart';
 import '../../../../data/models/creator.dart';
 import '../../../../data/repositories/kemono_repository.dart';
+import '../../../../domain/models/favourite.dart';
 import '../../../../domain/models/slideshow_source.dart';
+import '../../favourites/view_models/favourites_controller.dart';
+import '../../favourites/views/favourites_sheet.dart';
 import '../../settings/view_models/settings_controller.dart';
 import '../../settings/views/settings_dialog.dart';
 import '../../slideshow/views/slideshow_page.dart';
@@ -16,10 +19,12 @@ class SearchPage extends StatefulWidget {
     super.key,
     required this.repository,
     required this.settingsController,
+    required this.favouritesController,
   });
 
   final KemonoRepository repository;
   final SettingsController settingsController;
+  final FavouritesController favouritesController;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -53,9 +58,47 @@ class _SearchPageState extends State<SearchPage> {
           source: source,
           server: _viewModel.selectedServer,
           settings: widget.settingsController.settings,
+          favouritesController: widget.favouritesController,
         ),
       ),
     );
+  }
+
+  /// Opens a saved favourite, switching servers first when it belongs to
+  /// another one.
+  void _openFavourite(Favourite favourite) {
+    if (favourite.server != _viewModel.selectedServer) {
+      _queryController.clear();
+      _viewModel.selectServer(favourite.server);
+    }
+
+    switch (favourite) {
+      case PostSearchFavourite(:final term):
+        _viewModel.setMode(SearchMode.posts);
+        _queryController.value = TextEditingValue(
+          text: term,
+          selection: TextSelection.collapsed(offset: term.length),
+        );
+        _viewModel.updateQuery(term);
+      case AuthorFavourite():
+        _viewModel.setMode(SearchMode.creators);
+        _queryController.clear();
+        _viewModel.updateQuery('');
+    }
+
+    _openSlideshow(favourite.toSource());
+  }
+
+  Future<void> _showFavourites() async {
+    _queryFocus.unfocus();
+    final selected = await showModalBottomSheet<Favourite>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => FavouritesSheet(controller: widget.favouritesController),
+    );
+    if (selected == null || !mounted) return;
+    _openFavourite(selected);
   }
 
   void _submit() {
@@ -85,7 +128,10 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: _viewModel,
+          listenable: Listenable.merge([
+            _viewModel,
+            widget.favouritesController,
+          ]),
           builder: (context, _) {
             return Center(
               child: ConstrainedBox(
@@ -98,6 +144,9 @@ class _SearchPageState extends State<SearchPage> {
                       _Header(
                         selectedServer: _viewModel.selectedServer,
                         onServerChanged: _selectServer,
+                        hasFavourites:
+                            widget.favouritesController.favourites.isNotEmpty,
+                        onOpenFavourites: () => _showFavourites(),
                         onOpenSettings: () => showSettingsDialog(
                           context,
                           widget.settingsController,
@@ -165,22 +214,61 @@ class _SearchPageState extends State<SearchPage> {
       decoration: InputDecoration(
         hintText: isAuthors ? 'Search authors…' : 'Search posts…',
         prefixIcon: const Icon(Icons.search),
-        suffixIcon: ValueListenableBuilder<TextEditingValue>(
-          valueListenable: _queryController,
-          builder: (context, value, _) {
-            if (value.text.isEmpty) return const SizedBox.shrink();
-            return IconButton(
-              tooltip: 'Clear',
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                _queryController.clear();
-                _viewModel.updateQuery('');
-                _queryFocus.requestFocus();
-              },
-            );
-          },
-        ),
+        suffixIcon: _buildFieldActions(isAuthors),
       ),
+    );
+  }
+
+  Widget _buildFieldActions(bool isAuthors) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        _queryController,
+        widget.favouritesController,
+      ]),
+      builder: (context, _) {
+        final text = _queryController.text;
+        final trimmed = text.trim();
+
+        // A post search can only be saved once it is long enough to run.
+        final favourite =
+            !isAuthors && trimmed.length >= SearchViewModel.minPostQueryLength
+            ? PostSearchFavourite(_viewModel.selectedServer, trimmed)
+            : null;
+        final isFavourite =
+            favourite != null &&
+            widget.favouritesController.contains(favourite);
+
+        if (favourite == null && text.isEmpty) return const SizedBox.shrink();
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (favourite != null)
+              IconButton(
+                tooltip: isFavourite
+                    ? 'Remove post search from favourites'
+                    : 'Favourite this post search',
+                onPressed: () => widget.favouritesController.toggle(favourite),
+                icon: Icon(
+                  isFavourite ? Icons.star : Icons.star_border,
+                  color: isFavourite
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+              ),
+            if (text.isNotEmpty)
+              IconButton(
+                tooltip: 'Clear',
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  _queryController.clear();
+                  _viewModel.updateQuery('');
+                  _queryFocus.requestFocus();
+                },
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -331,8 +419,17 @@ class _SearchPageState extends State<SearchPage> {
             separatorBuilder: (_, _) => const SizedBox(height: 6),
             itemBuilder: (context, index) {
               final creator = suggestions[index];
+              final favourite = AuthorFavourite(
+                server: _viewModel.selectedServer,
+                id: creator.id,
+                service: creator.service,
+                name: creator.name,
+              );
               return _CreatorTile(
                 creator: creator,
+                isFavourite: widget.favouritesController.contains(favourite),
+                onToggleFavourite: () =>
+                    widget.favouritesController.toggle(favourite),
                 onTap: () => _openSlideshow(CreatorSource(creator)),
               );
             },
@@ -347,65 +444,95 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.selectedServer,
     required this.onServerChanged,
+    required this.hasFavourites,
+    required this.onOpenFavourites,
     required this.onOpenSettings,
   });
 
   final KemonoServer selectedServer;
   final ValueChanged<KemonoServer?> onServerChanged;
+  final bool hasFavourites;
+  final VoidCallback onOpenFavourites;
   final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(Icons.slideshow, color: theme.colorScheme.primary, size: 30),
-        const SizedBox(width: 12),
-        Flexible(
-          child: Text(
-            'KemoShow',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // On phones the logo would squeeze the title and the three actions; the
+        // title alone is enough branding there.
+        final compact = constraints.maxWidth < 480;
+        return Row(
+          children: [
+            if (!compact) ...[
+              Icon(Icons.slideshow, color: theme.colorScheme.primary, size: 30),
+              const SizedBox(width: 12),
+            ],
+            Flexible(
+              child: Text(
+                'KemoShow',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<KemonoServer>(
-              value: selectedServer,
-              borderRadius: BorderRadius.circular(12),
-              icon: const Icon(Icons.expand_more, size: 20),
-              style: theme.textTheme.bodyMedium,
-              onChanged: onServerChanged,
-              items: [
-                for (final server in KemonoServer.values)
-                  DropdownMenuItem(value: server, child: Text(server.label)),
-              ],
+            const SizedBox(width: 12),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<KemonoServer>(
+                  value: selectedServer,
+                  borderRadius: BorderRadius.circular(12),
+                  icon: Icon(Icons.expand_more, size: compact ? 18 : 20),
+                  style: compact
+                      ? theme.textTheme.bodySmall
+                      : theme.textTheme.bodyMedium,
+                  onChanged: onServerChanged,
+                  items: [
+                    for (final server in KemonoServer.values)
+                      DropdownMenuItem(
+                        value: server,
+                        child: Text(server.label),
+                      ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
-        IconButton(
-          tooltip: 'Settings',
-          onPressed: onOpenSettings,
-          icon: const Icon(Icons.settings_outlined),
-        ),
-      ],
+            IconButton(
+              tooltip: 'Favourites',
+              onPressed: onOpenFavourites,
+              icon: Icon(hasFavourites ? Icons.star : Icons.star_border),
+            ),
+            IconButton(
+              tooltip: 'Settings',
+              onPressed: onOpenSettings,
+              icon: const Icon(Icons.settings_outlined),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
 class _CreatorTile extends StatelessWidget {
-  const _CreatorTile({required this.creator, required this.onTap});
+  const _CreatorTile({
+    required this.creator,
+    required this.isFavourite,
+    required this.onToggleFavourite,
+    required this.onTap,
+  });
 
   final Creator creator;
+  final bool isFavourite;
+  final VoidCallback onToggleFavourite;
   final VoidCallback onTap;
 
   @override
@@ -436,23 +563,30 @@ class _CreatorTile extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: creator.favorited > 0
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.favorite,
-                    size: 14,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${creator.favorited}',
-                    style: theme.textTheme.labelSmall,
-                  ),
-                ],
-              )
-            : const Icon(Icons.chevron_right),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (creator.favorited > 0) ...[
+              Icon(Icons.favorite, size: 14, color: theme.colorScheme.primary),
+              const SizedBox(width: 4),
+              Text('${creator.favorited}', style: theme.textTheme.labelSmall),
+              const SizedBox(width: 4),
+            ],
+            IconButton(
+              tooltip: isFavourite
+                  ? 'Remove from favourites'
+                  : 'Add to favourites',
+              onPressed: onToggleFavourite,
+              icon: Icon(
+                isFavourite ? Icons.star : Icons.star_border,
+                size: 20,
+              ),
+              color: isFavourite
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
       ),
     );
   }

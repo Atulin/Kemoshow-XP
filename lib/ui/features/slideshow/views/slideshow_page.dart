@@ -11,10 +11,12 @@ import '../../../../core/kemono_server.dart';
 import '../../../../data/repositories/kemono_repository.dart';
 import '../../../../data/services/platform_media_saver.dart';
 import '../../../../domain/models/app_settings.dart';
+import '../../../../domain/models/favourite.dart';
 import '../../../../domain/models/media_item.dart';
 import '../../../../domain/models/slideshow_source.dart';
 import '../../../../domain/services/media_saver.dart';
 import '../../../core/platform_support.dart';
+import '../../favourites/view_models/favourites_controller.dart';
 import '../view_models/slideshow_view_model.dart';
 import 'widgets/image_slide.dart';
 import 'widgets/media_slide.dart';
@@ -31,6 +33,7 @@ class SlideshowPage extends StatefulWidget {
     required this.server,
     required this.settings,
     this.mediaSaver,
+    this.favouritesController,
   });
 
   final KemonoRepository repository;
@@ -41,6 +44,10 @@ class SlideshowPage extends StatefulWidget {
   /// Overrides how media is saved. Defaults to the platform behaviour:
   /// gallery on mobile, a chosen folder on desktop.
   final MediaSaver? mediaSaver;
+
+  /// Lets the header star the current search or author. When null the
+  /// favourite button is hidden.
+  final FavouritesController? favouritesController;
 
   @override
   State<SlideshowPage> createState() => _SlideshowPageState();
@@ -427,12 +434,23 @@ class _SlideshowPageState extends State<SlideshowPage> {
   // Build
   // ---------------------------------------------------------------------------
 
+  /// The favourite representing the source of this slideshow.
+  Favourite get _currentFavourite => switch (widget.source) {
+    PostSearchSource(:final term) => PostSearchFavourite(widget.server, term),
+    CreatorSource(:final creator) => AuthorFavourite(
+      server: widget.server,
+      id: creator.id,
+      service: creator.service,
+      name: creator.name,
+    ),
+  };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: ListenableBuilder(
-        listenable: _viewModel,
+        listenable: Listenable.merge([_viewModel, widget.favouritesController]),
         builder: (context, _) {
           final items = _viewModel.items;
           final current = _viewModel.current;
@@ -605,6 +623,10 @@ class _SlideshowPageState extends State<SlideshowPage> {
                     ),
                   ),
                   const SizedBox(width: 4),
+                  if (widget.favouritesController != null) ...[
+                    _buildFavouriteButton(_currentFavourite),
+                    const SizedBox(width: 4),
+                  ],
                   _buildSaveButton(),
                   if (isDesktopPlatform) ...[
                     const SizedBox(width: 4),
@@ -623,6 +645,22 @@ class _SlideshowPageState extends State<SlideshowPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFavouriteButton(Favourite favourite) {
+    final controller = widget.favouritesController!;
+    final isFavourite = controller.contains(favourite);
+    return IconButton(
+      tooltip: isFavourite ? 'Remove from favourites' : 'Add to favourites',
+      onPressed: () => controller.toggle(favourite),
+      icon: Icon(
+        isFavourite ? Icons.star : Icons.star_border,
+        color: isFavourite
+            ? Theme.of(context).colorScheme.primary
+            : Colors.white70,
+        size: 20,
       ),
     );
   }
