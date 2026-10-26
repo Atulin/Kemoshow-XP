@@ -58,11 +58,9 @@ class _SlideshowPageState extends State<SlideshowPage> {
   late final Player _player;
   late final VideoController _videoController;
   late final PageController _pageController;
-  late final StreamSubscription<String> _playerErrorSubscription;
   late final MediaSaver _mediaSaver;
 
   String? _currentVideoUrl;
-  String? _lastPlayerError;
   int? _pendingIndex;
   final Set<ImageProvider> _preloadedImages = {};
   bool _preloadScheduled = false;
@@ -84,7 +82,6 @@ class _SlideshowPageState extends State<SlideshowPage> {
     _pageController = PageController();
     _mediaSaver = widget.mediaSaver ?? PlatformMediaSaver();
     _viewModel.addListener(_handleViewModelChanged);
-    _playerErrorSubscription = _player.stream.error.listen(_onPlayerError);
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     unawaited(_viewModel.loadInitial());
   }
@@ -94,7 +91,6 @@ class _SlideshowPageState extends State<SlideshowPage> {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _viewModel.removeListener(_handleViewModelChanged);
     _viewModel.dispose();
-    _playerErrorSubscription.cancel();
     unawaited(_player.dispose());
     _pageController.dispose();
     _saveProgress.dispose();
@@ -174,12 +170,6 @@ class _SlideshowPageState extends State<SlideshowPage> {
         ),
       );
     }
-  }
-
-  void _onPlayerError(String message) {
-    if (!mounted || message.isEmpty || message == _lastPlayerError) return;
-    _lastPlayerError = message;
-    _showMessage('Playback error: $message');
   }
 
   // ---------------------------------------------------------------------------

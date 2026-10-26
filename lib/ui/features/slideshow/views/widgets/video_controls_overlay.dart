@@ -5,6 +5,7 @@ import 'package:media_kit/media_kit.dart';
 
 import '../../../../core/duration_label.dart';
 import '../../../../core/platform_support.dart';
+import 'playback_error_gate.dart';
 import 'shortcuts_help_dialog.dart';
 import 'video_overlay_surface.dart';
 
@@ -30,8 +31,10 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
   bool _pointerOverControls = false;
   String? _error;
   Timer? _hideTimer;
+  late final PlaybackErrorGate _errorGate;
   late final StreamSubscription<bool> _playingSubscription;
   late final StreamSubscription<bool> _bufferingSubscription;
+  late final StreamSubscription<Duration> _positionSubscription;
   late final StreamSubscription<String> _errorSubscription;
 
   Player get _player => widget.player;
@@ -39,9 +42,26 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
   @override
   void initState() {
     super.initState();
+    _errorGate = PlaybackErrorGate(
+      onShow: (message) {
+        if (!mounted) return;
+        _hideTimer?.cancel();
+        setState(() {
+          _error = message;
+          _visible = true;
+        });
+      },
+      onClear: () {
+        if (!mounted) return;
+        setState(() => _error = null);
+      },
+    );
     _playingSubscription = _player.stream.playing.listen((playing) {
       if (!mounted) return;
       if (playing) {
+        // The decoder recovered, which happens routinely after a transient
+        // codec error on some platforms.
+        _errorGate.recovered();
         _restartHideTimer();
       } else {
         _hideTimer?.cancel();
@@ -52,13 +72,14 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
       if (!mounted || buffering == _buffering) return;
       setState(() => _buffering = buffering);
     });
+    _positionSubscription = _player.stream.position.listen((position) {
+      if (position > Duration.zero && _player.state.playing) {
+        _errorGate.recovered();
+      }
+    });
     _errorSubscription = _player.stream.error.listen((message) {
       if (!mounted || message.isEmpty) return;
-      _hideTimer?.cancel();
-      setState(() {
-        _error = message;
-        _visible = true;
-      });
+      _errorGate.report(message);
     });
     _restartHideTimer();
   }
@@ -66,8 +87,10 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
   @override
   void dispose() {
     _hideTimer?.cancel();
+    _errorGate.dispose();
     _playingSubscription.cancel();
     _bufferingSubscription.cancel();
+    _positionSubscription.cancel();
     _errorSubscription.cancel();
     super.dispose();
   }
@@ -96,7 +119,7 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
   }
 
   void _togglePlayback() {
-    _error = null;
+    _errorGate.recovered();
     unawaited(_player.playOrPause());
     _show();
   }
@@ -124,9 +147,7 @@ class _VideoControlsOverlayState extends State<VideoControlsOverlay> {
             Center(
               child: _VideoError(
                 message: _error!,
-                onDismiss: () {
-                  setState(() => _error = null);
-                },
+                onDismiss: _errorGate.recovered,
               ),
             )
           else if (_buffering)
