@@ -79,8 +79,78 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate launcher icons
+        shell: bash
+        run: |
+          dart run flutter_launcher_icons
+          # flutter_launcher_icons 0.14.4 rewrites every ASSETCATALOG* build
+          # setting of the Runner target, which turns this boolean into the
+          # icon name. Restore it so an iOS build from this checkout still works.
+          sed -i \
+            's/ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = AppIcon;/ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;/' \
+            ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Restore release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
+            echo "::error title=Missing secret::ANDROID_KEYSTORE_BASE64 is not set."
+            exit 1
+          fi
+          if [ -z "${KEYSTORE_PASSWORD:-}" ]; then
+            echo "::error title=Missing secret::ANDROID_KEYSTORE_PASSWORD is not set."
+            exit 1
+          fi
+
+          keystore=android/app/flutter-release.jks
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > "$keystore"
+
+          # Read the alias and keystore type from the file itself; this also
+          # validates that the password and the decoded bytes are correct.
+          info="$(keytool -list -v -keystore "$keystore" -storepass "$KEYSTORE_PASSWORD")"
+          store_type="$(sed -n 's/^Keystore type: //p' <<< "$info" | head -n1)"
+          key_alias="${KEY_ALIAS:-$(sed -n 's/^Alias name: //p' <<< "$info" | head -n1)}"
+
+          if [ -z "$key_alias" ]; then
+            echo "::error::Could not determine the key alias; set the ANDROID_KEY_ALIAS secret."
+            exit 1
+          fi
+
+          {
+            echo "storeFile=flutter-release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$key_alias"
+            echo "keyPassword=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+            if [ -n "$store_type" ]; then
+              echo "storeType=$store_type"
+            fi
+          } > android/key.properties
+
+          echo "Signing with alias '$key_alias' (keystore type: ${store_type:-auto})."
+
       - name: Build universal APK
-        run: flutter build apk --release
+        env:
+          REQUIRE_RELEASE_SIGNING: 'true'
+        run: flutter build apk --release --build-number "${{ github.run_number }}"
+
+      - name: Verify APK signing certificate
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | tail -n1 || true)"
+          if [ -z "$apksigner" ]; then
+            echo "::warning::apksigner not found; skipping the APK signature check."
+            exit 0
+          fi
+          "$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/key.properties android/app/flutter-release.jks
 
       - name: Stage artifact
         run: |
@@ -110,6 +180,15 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate launcher icons
+        shell: bash
+        run: |
+          dart run flutter_launcher_icons
+          # Same flutter_launcher_icons 0.14.4 workaround as in the Android job.
+          sed -i \
+            's/ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = AppIcon;/ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;/' \
+            ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build Windows release
         run: flutter build windows --release
@@ -166,9 +245,10 @@ jobs:
             ## Downloads
 
             - **Android** — `KemoShow-${{ env.RELEASE_TAG }}-android.apk`
-              Universal APK (arm64-v8a, armeabi-v7a, x86_64). It is signed with the
-              Flutter debug keystore, so uninstall any previously installed copy
-              before installing this one.
+              Universal APK (arm64-v8a, armeabi-v7a, x86_64), signed with the
+              project's release key so later releases install straight over this
+              one. Builds signed with the old debug key cannot be updated in
+              place: uninstall them once before installing this APK.
             - **Windows x64** — `KemoShow-${{ env.RELEASE_TAG }}-windows-x64.zip`
               Extract the archive and run `kemoshow.exe`. Windows 10 or newer
               x64; install the Microsoft Visual C++ 2015–2022 Redistributable if

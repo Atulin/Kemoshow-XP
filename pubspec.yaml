@@ -25,8 +25,36 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
   dart_mappable_builder: ^4.10.0
   build_runner: ^2.16.2
 
 flutter:
   uses-material-design: true
+
+# Regenerate platform icons with: dart run flutter_launcher_icons
+# Sources in assets/icon/: icon.png (opaque; legacy Android, iOS, macOS,
+# Windows) and icon-transparent.png (mark only; adaptive foreground and
+# monochrome/themed layer).
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  android: true
+  ios: true
+  # App Store rejects icons with an alpha channel; the source is opaque already.
+  remove_alpha_ios: true
+  min_sdk_android: 24
+  adaptive_icon_background: "#0E0E10"
+  adaptive_icon_foreground: "assets/icon/icon-transparent.png"
+  # Android tints the monochrome layer and only reads its alpha, so the same
+  # transparent mark works; a black-on-white mask would fill the themed icon.
+  adaptive_icon_monochrome: "assets/icon/icon-transparent.png"
+  # The mark spans ~90% of its canvas, so inset it until it fits the 66dp safe
+  # zone of the 108dp adaptive layer instead of being clipped by the launcher
+  # mask (which is at most 72dp).
+  adaptive_icon_foreground_inset: 18
+  windows:
+    generate: true
+    # flutter_launcher_icons only accepts 48-256 here.
+    icon_size: 256
+  macos:
+    generate: true
