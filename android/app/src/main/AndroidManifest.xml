@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required to reach the Kemono API and media hosts in release builds. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="kemoshow"
+        android:label="KemoShow"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

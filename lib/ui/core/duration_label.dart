@@ -1,0 +1,13 @@
+/// Formats a media position/duration as `m:ss` or `h:mm:ss`.
+String formatDuration(Duration duration) {
+  final totalSeconds = duration.inSeconds;
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  final seconds = totalSeconds % 60;
+
+  final secondsLabel = seconds.toString().padLeft(2, '0');
+  if (hours > 0) {
+    return '$hours:${minutes.toString().padLeft(2, '0')}:$secondsLabel';
+  }
+  return '$minutes:$secondsLabel';
+}

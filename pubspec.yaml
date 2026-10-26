@@ -1,5 +1,5 @@
 name: kemoshow
-description: "A new Flutter project."
+description: "Slideshow viewer for Kemono-type websites."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -10,7 +10,10 @@ dependencies:
   dart_mappable: ^4.10.0
   flutter:
     sdk: flutter
+  http: ^1.6.0
   media_kit: ^1.2.6
+  media_kit_libs_video: ^1.0.7
+  media_kit_video: ^2.0.1
 
 dev_dependencies:
   flutter_test:

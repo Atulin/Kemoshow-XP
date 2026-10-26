@@ -1,0 +1,173 @@
+name: Release
+
+# Publishes installable builds for Android and Windows.
+#
+# Trigger a release by pushing a tag:
+#   git tag v0.1.0 && git push origin v0.1.0
+# or run this workflow manually with an existing tag name.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, e.g. v0.1.0 (created from the selected ref if missing)'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.47.8'
+  RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  verify:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - run: flutter analyze
+
+      - run: flutter test
+
+      - name: Check that pubspec.yaml matches the release tag
+        run: |
+          pubspec_version="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -n1 | sed 's/+.*//')"
+          tag_version="${RELEASE_TAG#v}"
+          if [ "$pubspec_version" != "$tag_version" ]; then
+            echo "::warning title=Version mismatch::pubspec.yaml declares ${pubspec_version} but the release tag is ${RELEASE_TAG}."
+          fi
+
+  android:
+    name: Android APK
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build universal APK
+        run: flutter build apk --release
+
+      - name: Stage artifact
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "dist/KemoShow-${RELEASE_TAG}-android.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: dist/KemoShow-*-android.apk
+          if-no-files-found: error
+
+  windows:
+    name: Windows x64
+    needs: verify
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Stage artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          # The output directory gained an architecture segment in recent
+          # Flutter versions, so locate the folder holding the runner instead
+          # of hard-coding build\windows\x64\runner\Release.
+          $release = Get-ChildItem -Path build/windows -Recurse -Directory -Filter Release |
+            Where-Object { Test-Path (Join-Path $_.FullName 'kemoshow.exe') } |
+            Select-Object -First 1
+          if (-not $release) {
+            throw 'Could not find the Windows release output (kemoshow.exe).'
+          }
+
+          $archive = "dist/KemoShow-$env:RELEASE_TAG-windows-x64.zip"
+          Compress-Archive -Path (Join-Path $release.FullName '*') -DestinationPath $archive
+          Get-Item $archive | Format-List Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: dist/KemoShow-*-windows-x64.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: [android, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List assets
+        run: ls -lh dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: KemoShow ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*
+          body: |
+            ## Downloads
+
+            - **Android** — `KemoShow-${{ env.RELEASE_TAG }}-android.apk`
+              Universal APK (arm64-v8a, armeabi-v7a, x86_64). It is signed with the
+              Flutter debug keystore, so uninstall any previously installed copy
+              before installing this one.
+            - **Windows x64** — `KemoShow-${{ env.RELEASE_TAG }}-windows-x64.zip`
+              Extract the archive and run `kemoshow.exe`. Windows 10 or newer;
+              no installer or additional runtime is required.

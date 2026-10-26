@@ -16,7 +16,7 @@ The API spec can be found in the [openapi.json](openapi.json) file.
   - `kemono.cr`
   - `coomer.su`
 - The initial screen should contain a switch between "post search" and "author search"
-- If author search is selected, the searchbar should autocomplete based on a list of authors obtainable from `https://[server url]/api/v1/creators.txt`
+- If author search is selected, the searchbar should autocomplete based on a list of authors obtainable from `https://[server url]/api/v1/creators`
   - WARNING: for legacy reasons, the reques must set `Accept: text/css` header to fetch this list!
   - The list should be fetched in the background on startup and cached for the runtime of the app
 - Once the user has selected an author or entered a search term, the slideshow should open
@@ -28,6 +28,10 @@ The API spec can be found in the [openapi.json](openapi.json) file.
 ## API tips
 
 - Media is served from `nx` subdomains, specifically `https://n2.pawchive.pw/data/`, `https://n4.kemono.cr/data/`, `https://n3.coomer.st/data/` respectively.
+
+## Additional instructions
+
+- Do not commit code. Once work is done, report, and leave the commit to the user.
 
 ## Stack
 
