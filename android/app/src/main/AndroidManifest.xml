@@ -1,9 +1,13 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Required to reach the Kemono API and media hosts in release builds. -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Required to save media to the gallery on Android 9 and older. -->
+    <!-- Required to save media to the gallery on Android 10 and older. -->
+    <!-- file_saver also declares this permission, but caps it at API 28; gal
+         needs it through API 29, so the merged value is overridden here. -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29"/>
+        android:maxSdkVersion="29"
+        tools:replace="android:maxSdkVersion"/>
     <application
         android:label="KemoShow"
         android:name="${applicationName}"
