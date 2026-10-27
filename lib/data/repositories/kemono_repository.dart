@@ -95,6 +95,30 @@ class KemonoRepository implements SlideshowRepository, CreatorDirectory {
     return MediaPage(items: items, nextOffset: nextOffset, hasMore: hasMore);
   }
 
+  /// Fetches the full post, including the body that post listings omit.
+  ///
+  /// Returns null when the post cannot be addressed, e.g. because the listing
+  /// did not include its service or creator.
+  Future<Post?> fetchPost({
+    required KemonoServer server,
+    required Post post,
+  }) async {
+    final service = post.service;
+    final creatorId = post.user;
+    if (service == null ||
+        service.isEmpty ||
+        creatorId == null ||
+        creatorId.isEmpty) {
+      return null;
+    }
+    return _api.fetchPost(
+      server: server,
+      service: service,
+      creatorId: creatorId,
+      postId: post.id,
+    );
+  }
+
   /// Closes the API client. The repository is not usable afterwards.
   void dispose() => _api.close();
 }

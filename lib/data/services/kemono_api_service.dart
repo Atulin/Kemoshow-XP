@@ -98,6 +98,37 @@ class KemonoApiService {
     throw const KemonoApiException('Unexpected response for creator posts.');
   }
 
+  /// Fetches a single post, including its body.
+  ///
+  /// Post listings omit the body, so post searches need this endpoint before
+  /// the slideshow can show it.
+  Future<Post?> fetchPost({
+    required KemonoServer server,
+    required String service,
+    required String creatorId,
+    required String postId,
+  }) async {
+    final uri = Uri.https(
+      server.host,
+      '/api/v1/$service/user/$creatorId/post/$postId',
+    );
+    final body = await _getBody(
+      uri,
+      headers: const {'Accept': 'application/json'},
+    );
+
+    final decoded = _decodeJson(body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const KemonoApiException('Unexpected response for a post.');
+    }
+
+    // Older API versions wrap the post in a `post` key.
+    final wrapped = decoded['post'];
+    final map = wrapped is Map<String, dynamic> ? wrapped : decoded;
+    if (map['id'] is! String) return null;
+    return PostMapper.fromMap(map);
+  }
+
   /// Fetches the full creator directory.
   ///
   /// The endpoint has legacy `.txt` semantics: it only serves JSON when the

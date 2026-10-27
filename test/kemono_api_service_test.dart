@@ -218,4 +218,65 @@ void main() {
       throwsA(isA<KemonoApiException>()),
     );
   });
+
+  test('fetchPost requests a single post and parses its body', () async {
+    late http.Request captured;
+    final service = KemonoApiService(
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(jsonEncode(_postJson()), 200);
+      }),
+    );
+
+    final post = await service.fetchPost(
+      server: KemonoServer.pawchive,
+      service: 'fanbox',
+      creatorId: '6570768',
+      postId: '1836570',
+    );
+
+    expect(captured.url.host, 'pawchive.pw');
+    expect(captured.url.path, '/api/v1/fanbox/user/6570768/post/1836570');
+    expect(captured.url.queryParameters, isEmpty);
+    expect(captured.headers['Accept'], 'application/json');
+
+    expect(post, isNotNull);
+    expect(post!.id, '1836570');
+    expect(post.content, '<p>Hello</p>');
+    expect(post.title, 'A post');
+    expect(post.file?.path, '/5c/98/cover.jpg');
+  });
+
+  test('fetchPost accepts a response wrapped in a post key', () async {
+    final service = KemonoApiService(
+      client: MockClient(
+        (_) async =>
+            http.Response(jsonEncode({'post': _postJson(id: '42')}), 200),
+      ),
+    );
+
+    final post = await service.fetchPost(
+      server: KemonoServer.kemono,
+      service: 'fanbox',
+      creatorId: '1',
+      postId: '42',
+    );
+
+    expect(post?.id, '42');
+  });
+
+  test('fetchPost returns null for a response without an id', () async {
+    final service = KemonoApiService(
+      client: MockClient((_) async => http.Response(jsonEncode({}), 200)),
+    );
+
+    final post = await service.fetchPost(
+      server: KemonoServer.pawchive,
+      service: 'fanbox',
+      creatorId: '1',
+      postId: '42',
+    );
+
+    expect(post, isNull);
+  });
 }

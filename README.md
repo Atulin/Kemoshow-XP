@@ -25,6 +25,9 @@ endless slideshow — no pagination, no clicking through individual posts.
 - **Zoomable images**: pinch to zoom, double-tap to switch between the regular
   and maximum zoom level, and pan while zoomed in. Panning takes precedence over
   swiping to the next image.
+- **Post details**: tap the post title in the header to see its full title and
+  rendered body, and to open the original post in the browser. Body links and
+  embedded images are tappable too.
 - **Distraction-free viewing**: tap the current media or press `Tab` to hide the
   header, so landscape media is not covered by it.
 - **Infinite scrolling**: the next page of posts is requested when only five

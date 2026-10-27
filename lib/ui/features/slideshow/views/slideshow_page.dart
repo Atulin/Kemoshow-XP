@@ -19,6 +19,7 @@ import '../../favourites/view_models/favourites_controller.dart';
 import '../view_models/slideshow_view_model.dart';
 import 'widgets/image_slide.dart';
 import 'widgets/media_slide.dart';
+import 'widgets/post_details_dialog.dart';
 import 'widgets/shortcuts_help_dialog.dart';
 import 'widgets/video_controls_overlay.dart';
 import 'widgets/video_progress_bar.dart';
@@ -568,6 +569,55 @@ class _SlideshowPageState extends State<SlideshowPage> {
     );
   }
 
+  /// The post title in the header; tapping it opens the post details.
+  ///
+  /// A [GestureDetector] is used instead of an [InkWell] because the header is
+  /// painted over the media, where an ink splash would not be visible.
+  Widget _buildPostTitle(BuildContext context, MediaItem item, String title) {
+    final theme = Theme.of(context);
+    return Tooltip(
+      message: 'Show post details',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => unawaited(
+            showPostDetails(
+              context,
+              post: item.post,
+              server: _viewModel.server,
+              loadDetails: () => widget.repository.fetchPost(
+                server: _viewModel.server,
+                post: item.post,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(Icons.info_outline, size: 14, color: Colors.white54),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(BuildContext context, MediaItem item, int loadedCount) {
     final theme = Theme.of(context);
     final post = item.post;
@@ -622,32 +672,28 @@ class _SlideshowPageState extends State<SlideshowPage> {
                       ),
                       const SizedBox(width: 4),
                       Expanded(
-                        child: IgnorePointer(
-                          // The title is not interactive; letting it absorb
-                          // pointers would create a dead zone for page swipes.
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (subtitle.isNotEmpty)
-                                Text(
-                                  subtitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white70,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildPostTitle(context, item, title),
+                            if (subtitle.isNotEmpty)
+                              IgnorePointer(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 4,
+                                    top: 2,
+                                  ),
+                                  child: Text(
+                                    subtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.white70,
+                                    ),
                                   ),
                                 ),
-                            ],
-                          ),
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 12),
