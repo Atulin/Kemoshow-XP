@@ -20,6 +20,13 @@ endless slideshow — no pagination, no clicking through individual posts.
   The slideshow header shows the same star toggle for the search or author being
   viewed.
 - **Flattened slideshow** of all primary files and attachments of all posts.
+  Archives and other files that cannot be displayed are skipped, and posts that
+  are not archived yet fall back to the server's preview image.
+- **Zoomable images**: pinch to zoom, double-tap to switch between the regular
+  and maximum zoom level, and pan while zoomed in. Panning takes precedence over
+  swiping to the next image.
+- **Distraction-free viewing**: tap the current media or press `Tab` to hide the
+  header, so landscape media is not covered by it.
 - **Infinite scrolling**: the next page of posts is requested when only five
   media items are left.
 - **Mobile**: swipe horizontally between media.
@@ -54,6 +61,7 @@ endless slideshow — no pagination, no clicking through individual posts.
 | `M` | Mute / unmute |
 | `Ctrl` / `⌘` + `S` | Save the current media |
 | `Home` / `End` | First / last loaded media |
+| `Tab` | Show or hide the header |
 | `H`, `?` | Show the shortcut reference |
 | `Esc` | Back to search |
 
