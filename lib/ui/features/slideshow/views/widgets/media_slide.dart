@@ -34,6 +34,7 @@ class MediaSlide extends StatelessWidget {
     if (!item.isVideo) {
       return ImageSlide(
         url: item.url,
+        previewUrl: item.previewUrl,
         name: item.name,
         isActive: isActive,
         onTap: onToggleHeader,

@@ -11,10 +11,17 @@ class MediaItem {
     required this.kind,
     required this.post,
     required this.isAttachment,
+    this.previewUrl,
   });
 
   /// Absolute URL of the media file.
   final String url;
+
+  /// Downscaled preview of [url], when the server offers one.
+  ///
+  /// Posts that are not archived completely yet serve a 404 for [url] but do
+  /// provide a preview, which the slideshow uses as a fallback.
+  final String? previewUrl;
 
   /// Name of the file, used for accessibility and error messages.
   final String name;
@@ -36,9 +43,13 @@ class MediaItem {
   /// When [includeLinkedMedia] is set, links to media files found in the post
   /// body (for example `https://files.example/movie.mp4`) are added after the
   /// post's own files and attachments.
+  ///
+  /// [previewBase] is the prefix of the server's downscaled previews; when
+  /// given, images get a [MediaItem.previewUrl] to fall back to.
   static List<MediaItem> flattenPosts(
     Iterable<Post> posts, {
     required String mediaBase,
+    String? previewBase,
     bool includeLinkedMedia = false,
   }) {
     final items = <MediaItem>[];
@@ -51,10 +62,26 @@ class MediaItem {
 
     for (final post in posts) {
       if (post.file != null) {
-        add(_fromFile(post.file!, post, mediaBase, isAttachment: false));
+        add(
+          _fromFile(
+            post.file!,
+            post,
+            mediaBase,
+            previewBase: previewBase,
+            isAttachment: false,
+          ),
+        );
       }
       for (final attachment in post.attachments) {
-        add(_fromFile(attachment, post, mediaBase, isAttachment: true));
+        add(
+          _fromFile(
+            attachment,
+            post,
+            mediaBase,
+            previewBase: previewBase,
+            isAttachment: true,
+          ),
+        );
       }
       if (includeLinkedMedia) {
         for (final url in mediaUrlsInHtml(post.content)) {
@@ -69,23 +96,30 @@ class MediaItem {
     PostFile file,
     Post post,
     String mediaBase, {
+    String? previewBase,
     required bool isAttachment,
   }) {
     final path = file.path;
     if (path == null || path.isEmpty) return null;
-    final base = mediaBase.endsWith('/')
-        ? mediaBase.substring(0, mediaBase.length - 1)
-        : mediaBase;
+    final base = _withoutTrailingSlash(mediaBase);
     final normalized = path.startsWith('/') ? path : '/$path';
     final name = file.fileName ?? normalized.split('/').last;
     if (_isNonMediaFile(name)) return null;
+    final kind = kindFromName(name);
     return MediaItem(
       url: '$base$normalized',
+      previewUrl: previewBase == null || kind != MediaKind.image
+          ? null
+          : '${_withoutTrailingSlash(previewBase)}$normalized',
       name: name,
-      kind: kindFromName(name),
+      kind: kind,
       post: post,
       isAttachment: isAttachment,
     );
+  }
+
+  static String _withoutTrailingSlash(String value) {
+    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
   }
 
   static MediaItem _fromUrl(String url, Post post) {

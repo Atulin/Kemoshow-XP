@@ -167,10 +167,33 @@ class _SlideshowPageState extends State<SlideshowPage> {
         precacheImage(
           provider,
           context,
-          onError: (error, stackTrace) => _preloadedImages.remove(provider),
+          onError: (error, stackTrace) {
+            _preloadedImages.remove(provider);
+            _preloadPreview(item);
+          },
         ),
       );
     }
+  }
+
+  /// Warms the preview of [item] after its full image failed to load.
+  ///
+  /// Posts that are not archived yet serve the full file as 404 but still have
+  /// a downscaled preview on the server's preview host.
+  void _preloadPreview(MediaItem item) {
+    final previewUrl = item.previewUrl;
+    if (!mounted || previewUrl == null) return;
+
+    final provider = mediaImageProvider(context, previewUrl);
+    if (!_preloadedImages.add(provider)) return;
+
+    unawaited(
+      precacheImage(
+        provider,
+        context,
+        onError: (error, stackTrace) => _preloadedImages.remove(provider),
+      ),
+    );
   }
 
   // ---------------------------------------------------------------------------

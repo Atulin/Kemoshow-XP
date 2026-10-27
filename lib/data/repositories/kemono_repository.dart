@@ -82,6 +82,7 @@ class KemonoRepository implements SlideshowRepository, CreatorDirectory {
         MediaItem.flattenPosts(
           posts,
           mediaBase: server.mediaBase,
+          previewBase: server.previewBase,
           includeLinkedMedia: includeLinkedMedia,
         ),
       );

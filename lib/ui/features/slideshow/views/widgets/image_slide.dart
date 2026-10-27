@@ -25,6 +25,7 @@ class ImageSlide extends StatefulWidget {
     super.key,
     required this.url,
     required this.name,
+    this.previewUrl,
     this.onTap,
     this.isActive = true,
     this.onZoomChanged,
@@ -32,6 +33,11 @@ class ImageSlide extends StatefulWidget {
 
   final String url;
   final String name;
+
+  /// Downscaled preview to use when [url] cannot be loaded.
+  ///
+  /// Posts that are not archived completely yet only serve a preview.
+  final String? previewUrl;
 
   /// Called when the image is tapped, e.g. to toggle the slideshow header.
   final VoidCallback? onTap;
@@ -62,6 +68,7 @@ class _ImageSlideState extends State<ImageSlide>
   Animation<Matrix4>? _zoomAnimation;
   Offset? _doubleTapPosition;
   bool _zoomed = false;
+  bool _usingPreview = false;
   int _attempt = 0;
 
   @override
@@ -83,7 +90,12 @@ class _ImageSlideState extends State<ImageSlide>
   @override
   void didUpdateWidget(ImageSlide oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.isActive && !widget.isActive) {
+    if (widget.url != oldWidget.url ||
+        widget.previewUrl != oldWidget.previewUrl) {
+      _usingPreview = false;
+      _attempt++;
+      _resetZoom(notify: false);
+    } else if (oldWidget.isActive && !widget.isActive) {
       _resetZoom(notify: false);
     }
   }
@@ -151,17 +163,45 @@ class _ImageSlideState extends State<ImageSlide>
   }
 
   void _retry() {
+    final previewUrl = widget.previewUrl;
     PaintingBinding.instance.imageCache.evict(
       mediaImageProvider(context, widget.url),
     );
+    if (previewUrl != null) {
+      PaintingBinding.instance.imageCache.evict(
+        mediaImageProvider(context, previewUrl),
+      );
+    }
     _resetZoom(notify: false);
-    setState(() => _attempt++);
+    setState(() {
+      _usingPreview = false;
+      _attempt++;
+    });
   }
+
+  /// Switches to the preview after the full file failed to load.
+  ///
+  /// The switch is deferred to after the frame because the error is reported
+  /// while the widget is being built.
+  void _usePreview() {
+    if (_usingPreview) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _usingPreview) return;
+      setState(() {
+        _usingPreview = true;
+        _attempt++;
+      });
+    });
+  }
+
+  String get _effectiveUrl => _usingPreview && widget.previewUrl != null
+      ? widget.previewUrl!
+      : widget.url;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final provider = mediaImageProvider(context, widget.url);
+    final provider = mediaImageProvider(context, _effectiveUrl);
 
     return Semantics(
       image: true,
@@ -212,6 +252,16 @@ class _ImageSlideState extends State<ImageSlide>
                     );
                   },
                   errorBuilder: (context, error, stackTrace) {
+                    if (!_usingPreview && widget.previewUrl != null) {
+                      _usePreview();
+                      return const Center(
+                        child: SizedBox(
+                          width: 42,
+                          height: 42,
+                          child: CircularProgressIndicator(strokeWidth: 3),
+                        ),
+                      );
+                    }
                     return Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(

@@ -24,6 +24,15 @@ void main() {
     return viewer(tester).transformationController!.value.getMaxScaleOnAxis();
   }
 
+  String? imageUrl(WidgetTester tester) {
+    final provider = tester.widget<Image>(find.byType(Image)).image;
+    if (provider is ResizeImage) {
+      final inner = provider.imageProvider;
+      if (inner is NetworkImage) return inner.url;
+    }
+    return null;
+  }
+
   Future<void> doubleTap(WidgetTester tester) async {
     final center = tester.getCenter(find.byType(ImageSlide));
     await tester.tapAt(center);
@@ -128,5 +137,30 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(controller.page, 1.0);
+  });
+
+  testWidgets('falls back to the preview when the full image fails', (
+    tester,
+  ) async {
+    const full = 'https://n2.pawchive.pw/data/aa/missing.jpg';
+    const preview = 'https://img.pawchive.pw/thumbnail/data/aa/missing.jpg';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ImageSlide(url: full, previewUrl: preview, name: 'missing.jpg'),
+        ),
+      ),
+    );
+
+    expect(imageUrl(tester), full);
+
+    // The full image fails to load in the test environment and the fallback
+    // rebuild happens after the error frame.
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(imageUrl(tester), preview);
   });
 }

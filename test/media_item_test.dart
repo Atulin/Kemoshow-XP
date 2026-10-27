@@ -109,6 +109,46 @@ void main() {
       ]);
       expect(items.map((item) => item.name), ['clip.mp4', 'no-extension']);
     });
+
+    test('adds preview URLs for server-hosted images', () {
+      const post = Post(
+        id: '9',
+        file: PostFile(path: '/aa/cover.jpg'),
+        attachments: [
+          PostFile(path: '/bb/clip.mp4'),
+          PostFile(path: '/cc/photo.png'),
+        ],
+      );
+
+      final items = MediaItem.flattenPosts(
+        [post],
+        mediaBase: 'https://n2.pawchive.pw/data',
+        previewBase: 'https://img.pawchive.pw/thumbnail/data/',
+      );
+
+      expect(
+        items[0].previewUrl,
+        'https://img.pawchive.pw/thumbnail/data/aa/cover.jpg',
+      );
+      expect(items[1].previewUrl, isNull);
+      expect(
+        items[2].previewUrl,
+        'https://img.pawchive.pw/thumbnail/data/cc/photo.png',
+      );
+    });
+
+    test('leaves preview URLs empty without a preview base', () {
+      const post = Post(
+        id: '10',
+        file: PostFile(path: '/aa/cover.jpg'),
+      );
+
+      final items = MediaItem.flattenPosts([
+        post,
+      ], mediaBase: 'https://n2.pawchive.pw/data');
+
+      expect(items.single.previewUrl, isNull);
+    });
   });
 
   group('MediaItem.kindFromName', () {
