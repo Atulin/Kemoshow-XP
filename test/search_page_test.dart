@@ -255,7 +255,7 @@ void main() {
     expect(find.widgetWithText(ListTile, 'old search'), findsOneWidget);
     expect(find.text('Post search · kemono.cr'), findsOneWidget);
     expect(find.widgetWithText(ListTile, 'Carol'), findsOneWidget);
-    expect(find.text('patreon · coomer.su'), findsOneWidget);
+    expect(find.text('patreon · coomer.st'), findsOneWidget);
   });
 
   testWidgets('authors can be starred from the results list', (tester) async {

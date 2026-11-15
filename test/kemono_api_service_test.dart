@@ -105,7 +105,7 @@ void main() {
       offset: 100,
     );
 
-    expect(captured.url.host, 'coomer.su');
+    expect(captured.url.host, 'coomer.st');
     expect(captured.url.path, '/api/v1/fanbox/user/123/posts');
     expect(captured.url.queryParameters, {'o': '100'});
     expect(posts.single.id, '9');

@@ -23,9 +23,9 @@ void main() {
 
     test('restores the persisted servers and selection', () async {
       const custom = KemonoServer(
-        host: 'coomer.st',
-        dataHost: 'n3.coomer.st',
-        previewHost: 'img.coomer.st',
+        host: 'coomer.example',
+        dataHost: 'n3.coomer.example',
+        previewHost: 'img.coomer.example',
       );
       final controller = ServerController(
         InMemoryServerStore(
@@ -46,9 +46,9 @@ void main() {
       'falls back to the first server when the selection disappeared',
       () async {
         const custom = KemonoServer(
-          host: 'coomer.st',
-          dataHost: 'n3.coomer.st',
-          previewHost: 'img.coomer.st',
+          host: 'coomer.example',
+          dataHost: 'n3.coomer.example',
+          previewHost: 'img.coomer.example',
         );
         final controller = ServerController(
           InMemoryServerStore(
@@ -71,9 +71,9 @@ void main() {
       addTearDown(controller.dispose);
 
       const custom = KemonoServer(
-        host: 'coomer.st',
-        dataHost: 'n3.coomer.st',
-        previewHost: 'img.coomer.st',
+        host: 'coomer.example',
+        dataHost: 'n3.coomer.example',
+        previewHost: 'img.coomer.example',
       );
 
       expect(controller.add(custom), isTrue);
@@ -132,9 +132,9 @@ void main() {
       controller.select(KemonoServer.coomer);
 
       const moved = KemonoServer(
-        host: 'coomer.st',
-        dataHost: 'n3.coomer.st',
-        previewHost: 'img.coomer.st',
+        host: 'coomer.example',
+        dataHost: 'n3.coomer.example',
+        previewHost: 'img.coomer.example',
       );
       expect(controller.update(KemonoServer.coomer, moved), isTrue);
       expect(controller.servers, [
@@ -165,9 +165,9 @@ void main() {
 
       controller.add(
         const KemonoServer(
-          host: 'coomer.st',
-          dataHost: 'n3.coomer.st',
-          previewHost: 'img.coomer.st',
+          host: 'coomer.example',
+          dataHost: 'n3.coomer.example',
+          previewHost: 'img.coomer.example',
         ),
       );
       // No store, no crash: the change only lives in memory.
@@ -178,9 +178,9 @@ void main() {
   group('KemonoServer serialization', () {
     test('round-trips through JSON', () {
       const server = KemonoServer(
-        host: 'coomer.st',
-        dataHost: 'n3.coomer.st',
-        previewHost: 'img.coomer.st',
+        host: 'coomer.example',
+        dataHost: 'n3.coomer.example',
+        previewHost: 'img.coomer.example',
       );
       expect(KemonoServer.tryParse(server.toJson()), server);
     });
@@ -190,22 +190,22 @@ void main() {
       expect(KemonoServer.tryParse(<String, Object?>{}), isNull);
       expect(
         KemonoServer.tryParse(<String, Object?>{
-          'host': 'coomer.st',
+          'host': 'coomer.example',
           'dataHost': 'not a host!',
-          'previewHost': 'img.coomer.st',
+          'previewHost': 'img.coomer.example',
         }),
         isNull,
       );
     });
 
     test('matches hosts case-insensitively', () {
-      expect(KemonoServer.fromHost('COOMER.SU'), KemonoServer.coomer);
+      expect(KemonoServer.fromHost('COOMER.ST'), KemonoServer.coomer);
       expect(KemonoServer.fromHost('example.com'), isNull);
     });
 
     test('validates hostnames', () {
-      expect(KemonoServer.isValidHost('coomer.st'), isTrue);
-      expect(KemonoServer.isValidHost('n3.coomer.st'), isTrue);
+      expect(KemonoServer.isValidHost('coomer.example'), isTrue);
+      expect(KemonoServer.isValidHost('n3.coomer.example'), isTrue);
       expect(KemonoServer.isValidHost('coomer'), isFalse);
       expect(KemonoServer.isValidHost('coomer..st'), isFalse);
       expect(KemonoServer.isValidHost(''), isFalse);

@@ -5,15 +5,20 @@ import '../../domain/repositories/media_repositories.dart';
 import '../models/creator.dart';
 import '../models/post.dart';
 import '../services/kemono_api_service.dart';
+import '../services/media_host_resolver.dart';
 
 /// Single source of truth for API data used by the app.
 ///
 /// Caches the creator directory per server for the runtime of the app and
-/// converts API posts into flattened [MediaItem]s.
+/// converts API posts into flattened [MediaItem]s. Media URLs are built with
+/// the media host the server currently redirects to, so a stale configured
+/// [KemonoServer.dataHost] heals itself instead of failing with HTTP 403.
 class KemonoRepository implements SlideshowRepository, CreatorDirectory {
-  KemonoRepository(this._api);
+  KemonoRepository(this._api, {MediaHostResolver? mediaHostResolver})
+    : _mediaHosts = mediaHostResolver ?? MediaHostResolver();
 
   final KemonoApiService _api;
+  final MediaHostResolver _mediaHosts;
 
   /// Maximum number of post pages fetched in one [fetchMediaPage] call. Pages
   /// without any media are skipped transparently, but this bound prevents a
@@ -78,10 +83,11 @@ class KemonoRepository implements SlideshowRepository, CreatorDirectory {
       }
 
       pagesFetched++;
+      final mediaBase = await _resolveMediaBase(server, posts);
       items.addAll(
         MediaItem.flattenPosts(
           posts,
-          mediaBase: server.mediaBase,
+          mediaBase: mediaBase,
           previewBase: server.previewBase,
           includeLinkedMedia: includeLinkedMedia,
         ),
@@ -93,6 +99,29 @@ class KemonoRepository implements SlideshowRepository, CreatorDirectory {
     }
 
     return MediaPage(items: items, nextOffset: nextOffset, hasMore: hasMore);
+  }
+
+  /// The media base to build file URLs with, resolved against the media host
+  /// the server currently redirects to.
+  Future<String> _resolveMediaBase(
+    KemonoServer server,
+    List<Post> posts,
+  ) async {
+    for (final post in posts) {
+      final sample = post.file?.path ?? _firstAttachmentPath(post);
+      if (sample == null || sample.isEmpty) continue;
+      final dataHost = await _mediaHosts.resolveDataHost(server, sample);
+      return 'https://$dataHost/data';
+    }
+    return server.mediaBase;
+  }
+
+  static String? _firstAttachmentPath(Post post) {
+    for (final attachment in post.attachments) {
+      final path = attachment.path;
+      if (path != null && path.isNotEmpty) return path;
+    }
+    return null;
   }
 
   /// Fetches the full post, including the body that post listings omit.
@@ -111,14 +140,69 @@ class KemonoRepository implements SlideshowRepository, CreatorDirectory {
         creatorId.isEmpty) {
       return null;
     }
-    return _api.fetchPost(
+    final fetched = await _api.fetchPost(
       server: server,
       service: service,
       creatorId: creatorId,
       postId: post.id,
     );
+    if (fetched == null) return null;
+    return _rewriteBodyUrls(server, fetched);
+  }
+
+  /// Makes file links in the body absolute, using the currently valid media
+  /// host. Other relative links are left for the body view to resolve against
+  /// the site host.
+  Future<Post> _rewriteBodyUrls(KemonoServer server, Post post) async {
+    final content = post.content;
+    if (content == null || !content.contains('/data')) return post;
+
+    final sample =
+        post.file?.path ??
+        _firstAttachmentPath(post) ??
+        _firstLinkedPath(content);
+    if (sample == null) return post;
+
+    final dataHost = await _mediaHosts.resolveDataHost(server, sample);
+    final effective = dataHost == server.dataHost
+        ? server
+        : KemonoServer(
+            host: server.host,
+            dataHost: dataHost,
+            previewHost: server.previewHost,
+          );
+
+    final rewritten = content.replaceAllMapped(_mediaPathPattern, (match) {
+      final path = match[2]!;
+      // `match[1]` is set for `/thumbnail/data/…` paths, which are served by
+      // the preview host.
+      final base = match[1] == null
+          ? effective.mediaBase
+          : effective.previewBase;
+      return '$base/$path';
+    });
+    if (rewritten == content) return post;
+    return PostMapper.fromMap({...post.toMap(), 'content': rewritten});
+  }
+
+  /// Matches `/data/…` and `/thumbnail/data/…` file paths inside a body.
+  ///
+  /// A single pass, so the `/data/` inside a rewritten `/thumbnail/data/` path
+  /// is never matched twice.
+  static final RegExp _mediaPathPattern = RegExp(
+    r'(/thumbnail)?/data/([A-Za-z0-9._/-]+)',
+  );
+
+  /// The first `/data/…` file path linked from a body, used to trigger the
+  /// media host redirect when the post itself has no file.
+  static String? _firstLinkedPath(String content) {
+    final match = RegExp(r'/data/([A-Za-z0-9._/-]+)').firstMatch(content);
+    return match?.group(1);
   }
 
   /// Closes the API client. The repository is not usable afterwards.
-  void dispose() => _api.close();
+  void dispose() {
+    _api.close();
+    _mediaHosts.dispose();
+  }
 }

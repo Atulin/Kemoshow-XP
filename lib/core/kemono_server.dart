@@ -19,12 +19,12 @@ class KemonoServer {
   );
   static const KemonoServer kemono = KemonoServer(
     host: 'kemono.cr',
-    dataHost: 'n4.kemono.cr',
+    dataHost: 'n2.kemono.cr',
     previewHost: 'img.kemono.cr',
   );
   static const KemonoServer coomer = KemonoServer(
-    host: 'coomer.su',
-    dataHost: 'n3.coomer.st',
+    host: 'coomer.st',
+    dataHost: 'n4.coomer.st',
     previewHost: 'img.coomer.st',
   );
 

@@ -49,7 +49,7 @@ void main() {
     expect(find.text('Servers'), findsOneWidget);
     expect(find.text('pawchive.pw'), findsOneWidget);
     expect(find.text('kemono.cr'), findsOneWidget);
-    expect(find.text('coomer.su'), findsOneWidget);
+    expect(find.text('coomer.st'), findsOneWidget);
   });
 
   testWidgets('a new server can be added and appears in the list', (
@@ -60,14 +60,23 @@ void main() {
     await tester.tap(find.text('Add server'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'coomer.st');
-    await tester.enterText(find.byType(TextFormField).at(1), 'n3.coomer.st');
-    await tester.enterText(find.byType(TextFormField).at(2), 'img.coomer.st');
+    await tester.enterText(find.byType(TextFormField).at(0), 'coomer.example');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'n3.coomer.example',
+    );
+    await tester.enterText(
+      find.byType(TextFormField).at(2),
+      'img.coomer.example',
+    );
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
     expect(find.text('coomer.st'), findsOneWidget);
-    expect(servers.servers.map((server) => server.host), contains('coomer.st'));
+    expect(
+      servers.servers.map((server) => server.host),
+      contains('coomer.example'),
+    );
   });
 
   testWidgets('media and preview hosts are suggested from the site host', (
@@ -78,11 +87,17 @@ void main() {
     await tester.tap(find.text('Add server'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'coomer.st');
+    await tester.enterText(find.byType(TextFormField).at(0), 'coomer.example');
     await tester.pump();
 
-    expect(find.widgetWithText(TextFormField, 'n2.coomer.st'), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, 'img.coomer.st'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextFormField, 'n2.coomer.example'),
+      findsOneWidget,
+    );
+    expect(
+      find.widgetWithText(TextFormField, 'img.coomer.example'),
+      findsOneWidget,
+    );
 
     // The suggested values produce a valid server.
     await tester.tap(find.text('Save'));
@@ -90,9 +105,9 @@ void main() {
     expect(
       servers.servers.last,
       const KemonoServer(
-        host: 'coomer.st',
-        dataHost: 'n2.coomer.st',
-        previewHost: 'img.coomer.st',
+        host: 'coomer.example',
+        dataHost: 'n2.coomer.example',
+        previewHost: 'img.coomer.example',
       ),
     );
   });
@@ -114,23 +129,29 @@ void main() {
     final (servers, favourites) = await pumpDialog(
       tester,
       favouritesStore: InMemoryFavouritesStore([
-        const PostSearchFavourite(KemonoServer.coomer, 'old search'),
+        const PostSearchFavourite(KemonoServer.kemono, 'old search'),
       ]),
     );
 
-    await tester.tap(find.byTooltip('Edit coomer.su'));
+    await tester.tap(find.byTooltip('Edit kemono.cr'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'coomer.st');
-    await tester.enterText(find.byType(TextFormField).at(1), 'n3.coomer.st');
-    await tester.enterText(find.byType(TextFormField).at(2), 'img.coomer.st');
+    await tester.enterText(find.byType(TextFormField).at(0), 'kemono.example');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'n2.kemono.example',
+    );
+    await tester.enterText(
+      find.byType(TextFormField).at(2),
+      'img.kemono.example',
+    );
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.text('coomer.st'), findsOneWidget);
+    expect(find.text('kemono.example'), findsOneWidget);
     // Another server was edited, so the selection is untouched.
     expect(servers.selectedServer, KemonoServer.defaultServer);
-    expect(favourites.favourites.single.server.host, 'coomer.st');
+    expect(favourites.favourites.single.server.host, 'kemono.example');
   });
 
   testWidgets('removing a server asks for confirmation and drops its '
@@ -142,7 +163,7 @@ void main() {
       ]),
     );
 
-    await tester.tap(find.byTooltip('Remove coomer.su'));
+    await tester.tap(find.byTooltip('Remove coomer.st'));
     await tester.pumpAndSettle();
     expect(
       find.text('This also removes 1 favourite saved on this server.'),
@@ -152,7 +173,7 @@ void main() {
     await tester.tap(find.text('Remove'));
     await tester.pumpAndSettle();
 
-    expect(find.text('coomer.su'), findsNothing);
+    expect(find.text('coomer.st'), findsNothing);
     expect(servers.servers.length, 2);
     expect(favourites.favourites, isEmpty);
   });
@@ -161,7 +182,7 @@ void main() {
     final store = InMemoryServerStore(
       ServerState(
         servers: const [KemonoServer.coomer],
-        selectedHost: 'coomer.su',
+        selectedHost: 'coomer.st',
       ),
     );
     final servers = ServerController(store);
