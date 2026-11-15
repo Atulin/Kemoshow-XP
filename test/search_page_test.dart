@@ -10,13 +10,21 @@ import 'package:kemoshow/data/services/kemono_api_service.dart';
 import 'package:kemoshow/domain/models/favourite.dart';
 import 'package:kemoshow/ui/features/favourites/view_models/favourites_controller.dart';
 import 'package:kemoshow/ui/features/search/views/search_page.dart';
+import 'package:kemoshow/ui/features/servers/view_models/server_controller.dart';
 import 'package:kemoshow/ui/features/settings/view_models/settings_controller.dart';
 
 import 'support/in_memory_favourites_store.dart';
+import 'support/in_memory_server_store.dart';
 import 'support/in_memory_settings_store.dart';
 
 SettingsController _settingsController() {
   final controller = SettingsController(InMemorySettingsStore());
+  addTearDown(controller.dispose);
+  return controller;
+}
+
+ServerController _serverController() {
+  final controller = ServerController(InMemoryServerStore());
   addTearDown(controller.dispose);
   return controller;
 }
@@ -54,6 +62,7 @@ void main() {
       MaterialApp(
         home: SearchPage(
           repository: repository,
+          serverController: _serverController(),
           settingsController: _settingsController(),
           favouritesController: _favouritesController(),
         ),
@@ -93,6 +102,7 @@ void main() {
       MaterialApp(
         home: SearchPage(
           repository: repository,
+          serverController: _serverController(),
           settingsController: _settingsController(),
           favouritesController: _favouritesController(),
         ),
@@ -125,6 +135,7 @@ void main() {
       MaterialApp(
         home: SearchPage(
           repository: repository,
+          serverController: _serverController(),
           settingsController: controller,
           favouritesController: _favouritesController(),
         ),
@@ -168,6 +179,7 @@ void main() {
       MaterialApp(
         home: SearchPage(
           repository: repository,
+          serverController: _serverController(),
           settingsController: _settingsController(),
           favouritesController: favourites,
         ),
@@ -228,6 +240,7 @@ void main() {
       MaterialApp(
         home: SearchPage(
           repository: repository,
+          serverController: _serverController(),
           settingsController: _settingsController(),
           favouritesController: favourites,
         ),
@@ -261,6 +274,7 @@ void main() {
       MaterialApp(
         home: SearchPage(
           repository: repository,
+          serverController: _serverController(),
           settingsController: _settingsController(),
           favouritesController: favourites,
         ),

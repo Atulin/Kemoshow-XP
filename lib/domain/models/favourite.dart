@@ -19,12 +19,22 @@ sealed class Favourite {
 
   Map<String, Object?> toJson();
 
+  /// Returns the same favourite saved on [server], used when a server is
+  /// renamed.
+  Favourite withServer(KemonoServer server);
+
   /// Parses a [toJson] map. Returns null for unknown or malformed entries so a
   /// partially corrupt store cannot hide the valid favourites around it.
-  static Favourite? fromJson(Map<String, Object?> json) {
+  ///
+  /// [servers] is the user's configured server list; favourites pointing to a
+  /// removed server cannot be resolved anymore.
+  static Favourite? fromJson(
+    Map<String, Object?> json, {
+    List<KemonoServer> servers = KemonoServer.bundledServers,
+  }) {
     final serverValue = json['server'];
     if (serverValue is! String) return null;
-    final server = KemonoServer.fromHost(serverValue);
+    final server = KemonoServer.fromHost(serverValue, servers: servers);
     if (server == null) return null;
 
     switch (json['kind']) {
@@ -63,6 +73,10 @@ class PostSearchFavourite extends Favourite {
 
   @override
   SlideshowSource toSource() => PostSearchSource(term);
+
+  @override
+  PostSearchFavourite withServer(KemonoServer server) =>
+      PostSearchFavourite(server, term);
 
   @override
   Map<String, Object?> toJson() => {
@@ -112,6 +126,10 @@ class AuthorFavourite extends Favourite {
 
   @override
   SlideshowSource toSource() => CreatorSource(creator);
+
+  @override
+  AuthorFavourite withServer(KemonoServer server) =>
+      AuthorFavourite(server: server, id: id, service: service, name: name);
 
   @override
   Map<String, Object?> toJson() => {

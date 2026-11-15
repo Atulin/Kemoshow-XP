@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'data/repositories/kemono_repository.dart';
 import 'data/services/favourites_store.dart';
 import 'data/services/kemono_api_service.dart';
+import 'data/services/server_store.dart';
 import 'data/services/settings_store.dart';
 import 'ui/features/favourites/view_models/favourites_controller.dart';
+import 'ui/features/servers/view_models/server_controller.dart';
 import 'ui/features/search/views/search_page.dart';
 import 'ui/features/settings/view_models/settings_controller.dart';
 
@@ -19,6 +21,7 @@ class KemoShowApp extends StatefulWidget {
 
 class _KemoShowAppState extends State<KemoShowApp> {
   late final KemonoRepository _repository;
+  late final ServerController _servers;
   late final SettingsController _settings;
   late final FavouritesController _favourites;
 
@@ -26,14 +29,23 @@ class _KemoShowAppState extends State<KemoShowApp> {
   void initState() {
     super.initState();
     _repository = KemonoRepository(KemonoApiService());
+    _servers = ServerController(SharedPreferencesServerStore());
     _settings = SettingsController(SharedPreferencesSettingsStore());
     _favourites = FavouritesController(SharedPreferencesFavouritesStore());
     unawaited(_settings.load());
-    unawaited(_favourites.load());
+    unawaited(_bootstrap());
+  }
+
+  /// Servers must be known before favourites: each favourite is bound to the
+  /// server it was saved on.
+  Future<void> _bootstrap() async {
+    await _servers.load();
+    await _favourites.load(servers: _servers.servers);
   }
 
   @override
   void dispose() {
+    _servers.dispose();
     _settings.dispose();
     _favourites.dispose();
     _repository.dispose();
@@ -73,6 +85,7 @@ class _KemoShowAppState extends State<KemoShowApp> {
       ),
       home: SearchPage(
         repository: _repository,
+        serverController: _servers,
         settingsController: _settings,
         favouritesController: _favourites,
       ),

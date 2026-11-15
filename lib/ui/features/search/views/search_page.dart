@@ -7,6 +7,8 @@ import '../../../../domain/models/favourite.dart';
 import '../../../../domain/models/slideshow_source.dart';
 import '../../favourites/view_models/favourites_controller.dart';
 import '../../favourites/views/favourites_sheet.dart';
+import '../../servers/view_models/server_controller.dart';
+import '../../servers/views/servers_dialog.dart';
 import '../../settings/view_models/settings_controller.dart';
 import '../../settings/views/settings_dialog.dart';
 import '../../slideshow/views/slideshow_page.dart';
@@ -18,11 +20,13 @@ class SearchPage extends StatefulWidget {
   const SearchPage({
     super.key,
     required this.repository,
+    required this.serverController,
     required this.settingsController,
     required this.favouritesController,
   });
 
   final KemonoRepository repository;
+  final ServerController serverController;
   final SettingsController settingsController;
   final FavouritesController favouritesController;
 
@@ -38,7 +42,16 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void initState() {
     super.initState();
-    _viewModel = SearchViewModel(widget.repository);
+    _viewModel = SearchViewModel(widget.repository, widget.serverController);
+  }
+
+  Future<void> _showServers() async {
+    _queryFocus.unfocus();
+    await showServersDialog(
+      context,
+      widget.serverController,
+      widget.favouritesController,
+    );
   }
 
   @override
@@ -130,6 +143,7 @@ class _SearchPageState extends State<SearchPage> {
         child: ListenableBuilder(
           listenable: Listenable.merge([
             _viewModel,
+            widget.serverController,
             widget.favouritesController,
           ]),
           builder: (context, _) {
@@ -142,8 +156,10 @@ class _SearchPageState extends State<SearchPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _Header(
+                        servers: widget.serverController.servers,
                         selectedServer: _viewModel.selectedServer,
                         onServerChanged: _selectServer,
+                        onManageServers: () async => _showServers(),
                         hasFavourites:
                             widget.favouritesController.favourites.isNotEmpty,
                         onOpenFavourites: () => _showFavourites(),
@@ -442,18 +458,24 @@ class _SearchPageState extends State<SearchPage> {
 
 class _Header extends StatelessWidget {
   const _Header({
+    required this.servers,
     required this.selectedServer,
     required this.onServerChanged,
+    required this.onManageServers,
     required this.hasFavourites,
     required this.onOpenFavourites,
     required this.onOpenSettings,
   });
 
+  final List<KemonoServer> servers;
   final KemonoServer selectedServer;
   final ValueChanged<KemonoServer?> onServerChanged;
+  final VoidCallback onManageServers;
   final bool hasFavourites;
   final VoidCallback onOpenFavourites;
   final VoidCallback onOpenSettings;
+
+  static const String _manageServersValue = '__manage_servers__';
 
   @override
   Widget build(BuildContext context) {
@@ -487,20 +509,33 @@ class _Header extends StatelessWidget {
                 border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
               child: DropdownButtonHideUnderline(
-                child: DropdownButton<KemonoServer>(
-                  value: selectedServer,
+                child: DropdownButton<String>(
+                  value: selectedServer.host,
                   borderRadius: BorderRadius.circular(12),
                   icon: Icon(Icons.expand_more, size: compact ? 18 : 20),
                   style: compact
                       ? theme.textTheme.bodySmall
                       : theme.textTheme.bodyMedium,
-                  onChanged: onServerChanged,
+                  onChanged: (value) {
+                    if (value == null) return;
+                    if (value == _manageServersValue) {
+                      onManageServers();
+                      return;
+                    }
+                    onServerChanged(
+                      KemonoServer.fromHost(value, servers: servers),
+                    );
+                  },
                   items: [
-                    for (final server in KemonoServer.values)
+                    for (final server in servers)
                       DropdownMenuItem(
-                        value: server,
+                        value: server.host,
                         child: Text(server.label),
                       ),
+                    const DropdownMenuItem(
+                      value: _manageServersValue,
+                      child: Text('Manage servers…'),
+                    ),
                   ],
                 ),
               ),

@@ -14,7 +14,9 @@ import 'support/in_memory_favourites_store.dart';
 
 class _FailingFavouritesStore implements FavouritesStore {
   @override
-  Future<List<Favourite>> load() async => throw StateError('unavailable');
+  Future<List<Favourite>> load({
+    List<KemonoServer> servers = KemonoServer.bundledServers,
+  }) async => throw StateError('unavailable');
 
   @override
   Future<void> save(List<Favourite> favourites) async {}
@@ -29,7 +31,9 @@ class _DelayedFavouritesStore implements FavouritesStore {
   int saveCount = 0;
 
   @override
-  Future<List<Favourite>> load() => _load.future;
+  Future<List<Favourite>> load({
+    List<KemonoServer> servers = KemonoServer.bundledServers,
+  }) => _load.future;
 
   @override
   Future<void> save(List<Favourite> favourites) async {
@@ -206,6 +210,51 @@ void main() {
       expect(store.saved, [post, author]);
     });
 
+    test('moves favourites when a server is renamed', () async {
+      final store = InMemoryFavouritesStore();
+      final controller = FavouritesController(store);
+      addTearDown(controller.dispose);
+
+      const post = PostSearchFavourite(KemonoServer.coomer, 'cats');
+      const other = PostSearchFavourite(KemonoServer.pawchive, 'dogs');
+      controller.toggle(post);
+      controller.toggle(other);
+
+      const renamed = KemonoServer(
+        host: 'coomer.st',
+        dataHost: 'n3.coomer.st',
+        previewHost: 'img.coomer.st',
+      );
+      controller.updateServer(KemonoServer.coomer, renamed);
+
+      final moved = PostSearchFavourite(renamed, 'cats');
+      expect(controller.favourites, [other, moved]);
+      await pumpEventQueue();
+      expect(store.lastSaved, [other, moved]);
+    });
+
+    test('removes every favourite of a removed server', () async {
+      final store = InMemoryFavouritesStore();
+      final controller = FavouritesController(store);
+      addTearDown(controller.dispose);
+
+      const coomerPost = PostSearchFavourite(KemonoServer.coomer, 'cats');
+      const other = PostSearchFavourite(KemonoServer.pawchive, 'dogs');
+      controller.toggle(coomerPost);
+      controller.toggle(other);
+
+      controller.removeServer(KemonoServer.coomer);
+      expect(controller.favourites, [other]);
+      await pumpEventQueue();
+      expect(store.lastSaved, [other]);
+
+      // Nothing is saved again when no favourite matches.
+      store.lastSaved = const [];
+      controller.removeServer(KemonoServer.kemono);
+      await pumpEventQueue();
+      expect(store.lastSaved, isEmpty);
+    });
+
     test('adds newest first, toggles off and persists', () async {
       final store = InMemoryFavouritesStore();
       final controller = FavouritesController(store);
@@ -312,5 +361,24 @@ void main() {
         const PostSearchFavourite(KemonoServer.pawchive, 'cats'),
       ]);
     });
+
+    test(
+      'drops favourites of servers that are not configured anymore',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          SharedPreferencesFavouritesStore.storageKey: jsonEncode([
+            {'kind': 'postSearch', 'server': 'pawchive.pw', 'term': 'cats'},
+            {'kind': 'postSearch', 'server': 'gone.example', 'term': 'x'},
+          ]),
+        });
+
+        expect(
+          await SharedPreferencesFavouritesStore().load(
+            servers: [KemonoServer.pawchive],
+          ),
+          [const PostSearchFavourite(KemonoServer.pawchive, 'cats')],
+        );
+      },
+    );
   });
 }

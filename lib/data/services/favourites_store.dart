@@ -3,11 +3,16 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/kemono_server.dart';
 import '../../domain/models/favourite.dart';
 
 /// Persists the user's favourite post searches and authors.
 abstract interface class FavouritesStore {
-  Future<List<Favourite>> load();
+  /// [servers] is the user's configured server list, used to resolve the
+  /// server each favourite was saved on.
+  Future<List<Favourite>> load({
+    List<KemonoServer> servers = KemonoServer.bundledServers,
+  });
 
   Future<void> save(List<Favourite> favourites);
 }
@@ -19,7 +24,9 @@ class SharedPreferencesFavouritesStore implements FavouritesStore {
   static const String storageKey = 'favourites.v1';
 
   @override
-  Future<List<Favourite>> load() async {
+  Future<List<Favourite>> load({
+    List<KemonoServer> servers = KemonoServer.bundledServers,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(storageKey);
     if (raw == null || raw.isEmpty) return const [];
@@ -35,7 +42,7 @@ class SharedPreferencesFavouritesStore implements FavouritesStore {
           for (final mapEntry in entry.entries)
             '${mapEntry.key}': mapEntry.value,
         };
-        final favourite = Favourite.fromJson(json);
+        final favourite = Favourite.fromJson(json, servers: servers);
         if (favourite == null || favourites.contains(favourite)) continue;
         favourites.add(favourite);
       }

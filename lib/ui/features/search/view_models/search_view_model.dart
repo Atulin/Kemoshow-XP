@@ -6,17 +6,25 @@ import '../../../../core/kemono_server.dart';
 import '../../../../data/models/creator.dart';
 import '../../../../domain/models/slideshow_source.dart';
 import '../../../../domain/repositories/media_repositories.dart';
+import '../../servers/view_models/server_controller.dart';
 
 /// What the search page is searching for.
 enum SearchMode { posts, creators }
 
 /// Owns the state of the search screen: selected server, search mode, the
 /// creator directory for autocomplete and validation of the entered query.
+///
+/// The selected server lives in [ServerController] so it is shared with the
+/// server management dialog and persisted across runs.
 class SearchViewModel extends ChangeNotifier {
-  SearchViewModel(this._repository) {
+  SearchViewModel(this._repository, [ServerController? servers])
+    : _servers = servers ?? ServerController(),
+      _ownsServers = servers == null {
+    _servers.addListener(_handleServersChanged);
+    _selectedHost = _servers.selectedServer.host;
     // Start fetching the default server's creator directory immediately so
     // author autocomplete is ready by the time the user switches modes.
-    _repository.warmUpCreators(_selectedServer);
+    _repository.warmUpCreators(_servers.selectedServer);
     unawaited(_loadCreators());
   }
 
@@ -24,11 +32,17 @@ class SearchViewModel extends ChangeNotifier {
   static const int minPostQueryLength = 3;
 
   final CreatorDirectory _repository;
+  final ServerController _servers;
+
+  /// Whether this view model created [_servers] itself and has to dispose it.
+  final bool _ownsServers;
+
+  /// Host of the server the current creator list belongs to.
+  String _selectedHost = KemonoServer.defaultServer.host;
 
   final Map<KemonoServer, List<Creator>> _creatorsByServer = {};
   final Map<KemonoServer, List<Creator>> _popularByServer = {};
 
-  KemonoServer _selectedServer = KemonoServer.defaultServer;
   SearchMode _mode = SearchMode.posts;
   String _query = '';
   String? _queryError;
@@ -41,7 +55,7 @@ class SearchViewModel extends ChangeNotifier {
   int _creatorLoadToken = 0;
   bool _disposed = false;
 
-  KemonoServer get selectedServer => _selectedServer;
+  KemonoServer get selectedServer => _servers.selectedServer;
 
   SearchMode get mode => _mode;
 
@@ -60,13 +74,20 @@ class SearchViewModel extends ChangeNotifier {
   String? get queryError => _queryError;
 
   void selectServer(KemonoServer server) {
-    if (server == _selectedServer) return;
-    _selectedServer = server;
+    _servers.select(server);
+  }
+
+  /// Switches to the newly selected or edited server, resetting the query.
+  void _handleServersChanged() {
+    final server = _servers.selectedServer;
+    if (server.host == _selectedHost) return;
+    _selectedHost = server.host;
     _queryError = null;
     _query = '';
     _suggestions = const [];
     _repository.warmUpCreators(server);
     _loadCreators();
+    _notify();
   }
 
   void setMode(SearchMode mode) {
@@ -136,13 +157,13 @@ class SearchViewModel extends ChangeNotifier {
 
   /// Retries a failed creator directory request.
   void retryCreators() {
-    _creatorsByServer.remove(_selectedServer);
+    _creatorsByServer.remove(_servers.selectedServer);
     _creatorsError = null;
     _loadCreators();
   }
 
   Future<void> _loadCreators() async {
-    final server = _selectedServer;
+    final server = _servers.selectedServer;
 
     final cached = _creatorsByServer[server];
     if (cached != null) {
@@ -215,6 +236,8 @@ class SearchViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _servers.removeListener(_handleServersChanged);
+    if (_ownsServers) _servers.dispose();
     super.dispose();
   }
 }

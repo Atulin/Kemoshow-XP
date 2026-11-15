@@ -1,11 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kemoshow/core/kemono_server.dart';
 import 'package:kemoshow/data/models/creator.dart';
+import 'package:kemoshow/data/services/server_store.dart';
 import 'package:kemoshow/domain/models/media_item.dart';
 import 'package:kemoshow/domain/models/slideshow_source.dart';
 import 'package:kemoshow/domain/repositories/media_repositories.dart';
 import 'package:kemoshow/ui/features/search/view_models/search_view_model.dart';
+import 'package:kemoshow/ui/features/servers/view_models/server_controller.dart';
 import 'package:kemoshow/ui/features/slideshow/view_models/slideshow_view_model.dart';
+
+import 'support/in_memory_server_store.dart';
 
 import 'package:kemoshow/data/models/post.dart';
 
@@ -357,5 +361,48 @@ void main() {
       expect(viewModel.suggestions, isNotEmpty);
       expect(directory.calls[KemonoServer.defaultServer], 2);
     });
+
+    test(
+      'follows a shared server controller when it loads or changes',
+      () async {
+        final directory = _FakeCreatorDirectory(
+          creatorsByServer: {
+            KemonoServer.defaultServer: creators,
+            KemonoServer.kemono: const [
+              Creator(id: '9', service: 'fanbox', name: 'Kemono Only'),
+            ],
+          },
+        );
+        final servers = ServerController(
+          InMemoryServerStore(
+            ServerState(
+              servers: [KemonoServer.pawchive, KemonoServer.kemono],
+              selectedHost: KemonoServer.kemono.host,
+            ),
+          ),
+        );
+        addTearDown(servers.dispose);
+        final viewModel = SearchViewModel(directory, servers);
+        addTearDown(viewModel.dispose);
+
+        await pumpEventQueue();
+        // Before the controller has loaded, the bundled default is selected.
+        expect(viewModel.selectedServer, KemonoServer.defaultServer);
+        expect(directory.calls[KemonoServer.defaultServer], 1);
+
+        await servers.load();
+        await pumpEventQueue();
+        // The persisted selection takes over.
+        expect(viewModel.selectedServer, KemonoServer.kemono);
+        expect(viewModel.suggestions.single.name, 'Kemono Only');
+        expect(directory.calls[KemonoServer.kemono], 1);
+
+        servers.select(KemonoServer.defaultServer);
+        await pumpEventQueue();
+        expect(viewModel.selectedServer, KemonoServer.defaultServer);
+        expect(viewModel.suggestions.first.name, 'Bob');
+        expect(directory.calls[KemonoServer.defaultServer], 1);
+      },
+    );
   });
 }

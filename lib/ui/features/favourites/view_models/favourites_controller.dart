@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/kemono_server.dart';
 import '../../../../data/services/favourites_store.dart';
 import '../../../../domain/models/favourite.dart';
 
@@ -29,10 +30,15 @@ class FavouritesController extends ChangeNotifier {
   bool contains(Favourite favourite) => _favourites.contains(favourite);
 
   /// Reads the persisted favourites. Failures fall back to an empty list.
-  Future<void> load() async {
+  ///
+  /// [servers] is the user's configured server list; favourites pointing to a
+  /// removed server are dropped.
+  Future<void> load({
+    List<KemonoServer> servers = KemonoServer.bundledServers,
+  }) async {
     List<Favourite> loaded;
     try {
-      loaded = _deduplicate(await _store.load());
+      loaded = _deduplicate(await _store.load(servers: servers));
     } catch (error) {
       debugPrint('Could not load favourites: $error');
       loaded = const [];
@@ -75,6 +81,34 @@ class FavouritesController extends ChangeNotifier {
         if (entry != favourite) entry,
     ]);
     _mutatedBeforeLoad = !_loaded;
+    _persist();
+    notifyListeners();
+  }
+
+  /// Moves every favourite saved on [oldServer] over to [newServer], used when
+  /// a server is renamed.
+  void updateServer(KemonoServer oldServer, KemonoServer newServer) {
+    if (oldServer == newServer) return;
+    if (!_favourites.any((favourite) => favourite.server == oldServer)) {
+      return;
+    }
+    _favourites = _deduplicate([
+      for (final favourite in _favourites)
+        favourite.server == oldServer
+            ? favourite.withServer(newServer)
+            : favourite,
+    ]);
+    _persist();
+    notifyListeners();
+  }
+
+  /// Removes every favourite saved on [server], used when a server is removed.
+  void removeServer(KemonoServer server) {
+    if (!_favourites.any((favourite) => favourite.server == server)) return;
+    _favourites = List.unmodifiable([
+      for (final favourite in _favourites)
+        if (favourite.server != server) favourite,
+    ]);
     _persist();
     notifyListeners();
   }
